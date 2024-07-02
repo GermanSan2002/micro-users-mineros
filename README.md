@@ -42,117 +42,89 @@ El proyecto está configurado por defecto para usar PostgreSQL. Si deseas utiliz
      npm install oracledb
      ```
 
-2. **Actualiza el archivo `ormconfig.js`**. Modifica las propiedades en este archivo para reflejar la configuración de tu motor de base de datos. Aquí hay algunos ejemplos de configuraciones para diferentes motores:
+2. **Actualiza el archivo `orm.config.ts`**. Modifica las propiedades en este archivo para reflejar la configuración de tu motor de base de datos. Aquí hay algunos ejemplos de configuraciones para diferentes motores:
 
    - **PostgreSQL** (por defecto):
-     ```javascript
-     module.exports = {
-       type: 'postgres',
-       host: 'localhost',
-       port: 5432,
-       username: 'yourusername',
-       password: 'yourpassword',
-       database: 'yourdatabase',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       }
-     };
+     ```typescript
+      import { DataSource } from 'typeorm';
+      import { User } from './entities/User';
+      import { Operation } from './entities/Operation';
+      
+      export const AppDataSource = new DataSource({
+        type: 'postgres',
+        host: 'yourhost', // Nombre del servicio de Docker, no 'localhost'
+        port: 5432,
+        username: 'youruser',
+        password: 'yourpassword',
+        database: 'yourdatabase',
+        synchronize: true,
+        logging: false,
+        entities: [User, Operation],
+        migrations: ['src/migrations/**/*.ts'],
+        subscribers: ['src/subscribers/**/*.ts'],
+      });
      ```
 
    - **MySQL / MariaDB**:
-     ```javascript
-     module.exports = {
-       type: 'mysql',
-       host: 'localhost',
-       port: 3306,
-       username: 'yourusername',
-       password: 'yourpassword',
-       database: 'yourdatabase',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       }
-     };
+     ```typescript
+      import { DataSource } from 'typeorm';
+      import { User } from './entities/User';
+      import { Operation } from './entities/Operation';
+      
+      export const AppDataSource = new DataSource({
+        type: 'postgres',
+        host: 'yourhost',
+        port: 5432,
+        username: 'youruser',
+        password: 'yourpassword',
+        database: 'yourdatabase',
+        synchronize: true,
+        logging: false,
+        entities: [User, Operation],
+        migrations: ['src/migrations/**/*.ts'],
+        subscribers: ['src/subscribers/**/*.ts'],
+      });
      ```
 
    - **SQLite**:
-     ```javascript
-     module.exports = {
-       type: 'sqlite',
-       database: 'database.sqlite',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       }
-     };
+     ```typescript
+      import { DataSource } from 'typeorm';
+      import { User } from './entities/User';
+      import { Operation } from './entities/Operation';
+      
+      export const AppDataSource = new DataSource({
+        type: 'sqlite',
+        database: 'database.sqlite',
+        synchronize: true,
+        logging: false,
+        entities: [User, Operation],
+        migrations: ['src/migrations/**/*.ts'],
+        subscribers: ['src/subscribers/**/*.ts'],
+      });
      ```
 
    - **Microsoft SQL Server**:
-     ```javascript
-     module.exports = {
-       type: 'mssql',
-       host: 'localhost',
-       port: 1433,
-       username: 'yourusername',
-       password: 'yourpassword',
-       database: 'yourdatabase',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       },
-       options: {
-         enableArithAbort: true
-       }
-     };
+     ```typescript
+      import { DataSource } from 'typeorm';
+      import { User } from './entities/User';
+      import { Operation } from './entities/Operation';
+      
+      export const AppDataSource = new DataSource({
+        type: 'mssql',
+        host: 'yourhost',
+        port: 1433,
+        username: 'youruser',
+        password: 'yourpassword',
+        database: 'yourdatabase',
+        synchronize: true,
+        logging: false,
+        entities: [User, Operation],
+        migrations: ['src/migrations/**/*.ts'],
+        subscribers: ['src/subscribers/**/*.ts'],
+        options: {
+          enableArithAbort: true,
+        },
+      });
      ```
 
 3. **Asegúrate de que la base de datos esté configurada y en ejecución**. Dependiendo del motor de base de datos, puede que necesites ajustar configuraciones adicionales o asegurarte de que los servicios de base de datos estén en funcionamiento.
