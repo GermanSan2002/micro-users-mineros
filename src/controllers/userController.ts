@@ -10,6 +10,21 @@ export class UserController {
     this.userService = new UserService();
   }
 
+  async login(req: Request, res: Response) {
+    const { email, password } = req.body;
+    const credentialsDTO = new CredentialsDTO(email, password);
+    try {
+      const token = await this.userService.loginUsuario(credentialsDTO);
+      res.status(200).json({ token });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: 'Unknown error occurred' });
+      }
+    }
+  }
+
   async crearUsuario(req: Request, res: Response): Promise<void> {
     try {
       const credentialsDTO = new CredentialsDTO(req.body.email, req.body.password);

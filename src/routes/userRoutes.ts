@@ -4,6 +4,7 @@ import { UserController } from '../controllers/userController';
 const router = Router();
 const userController = new UserController();
 
+router.post('/login', (req, res) => userController.login(req, res));
 router.post('/users', (req: Request, res: Response) => userController.crearUsuario(req, res));
 router.put('/users/:id', (req: Request, res: Response) => userController.modificarUsuario(req, res));
 router.delete('/users/:id', (req: Request, res: Response) => userController.eliminarUsuario(req, res));
