@@ -1,29 +1,29 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Operation } from './Operation';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column()
-  nombre!: string;
+  nombre: string;
 
   @Column()
-  email!: string;
+  email: string;
 
   @Column()
-  password!: string;
+  password: string;
 
   @Column()
-  estado!: string;
+  estado: string;
 
-  @CreateDateColumn()
-  fechaCreacion!: Date;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  fechaCreacion: Date;
 
-  @UpdateDateColumn()
-  fechaModificacion!: Date;
-
-  @OneToMany(() => Operation, operation => operation.usuario)
-  operations!: Operation[];
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  fechaModificacion: Date;
 }

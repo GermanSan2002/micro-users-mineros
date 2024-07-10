@@ -1,18 +1,24 @@
-import { Request, Response } from 'express';
-import { UserService } from '../services/userService';
-import { CredentialsDTO } from '../dto/credentialsDTO';
-import { UserDTO } from '../dto/userDTO';
+import {
+  Body,
+  Controller,
+  Delete,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Res,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { CredentialsDTO } from '../../dto/credentialsDTO';
+import { UserDTO } from '../../dto/userDTO';
+import { UserService } from '../../services/user/user.service';
 
+@Controller('users')
 export class UserController {
-  private userService: UserService;
+  constructor(private readonly userService: UserService) {}
 
-  constructor() {
-    this.userService = new UserService();
-  }
-
-  async login(req: Request, res: Response) {
-    const { email, password } = req.body;
-    const credentialsDTO = new CredentialsDTO(email, password);
+  @Post('login')
+  async login(@Body() credentialsDTO: CredentialsDTO, @Res() res: Response) {
     try {
       const token = await this.userService.loginUsuario(credentialsDTO);
       res.status(200).json({ token });
@@ -25,9 +31,12 @@ export class UserController {
     }
   }
 
-  async crearUsuario(req: Request, res: Response): Promise<void> {
+  @Post()
+  async crearUsuario(
+    @Body() credentialsDTO: CredentialsDTO,
+    @Res() res: Response,
+  ) {
     try {
-      const credentialsDTO = new CredentialsDTO(req.body.email, req.body.password);
       const userDTO = await this.userService.crearUsuario(credentialsDTO);
       res.status(201).json(userDTO);
     } catch (error: unknown) {
@@ -39,10 +48,13 @@ export class UserController {
     }
   }
 
-  async modificarUsuario(req: Request, res: Response): Promise<void> {
+  @Put(':id')
+  async modificarUsuario(
+    @Param('id') id: string,
+    @Body() userDTO: UserDTO,
+    @Res() res: Response,
+  ) {
     try {
-      const id = req.params.id;
-      const userDTO = new UserDTO(id, req.body.nombre, req.body.email, req.body.estado, new Date(), new Date());
       const updatedUser = await this.userService.modificarUsuario(id, userDTO);
       res.status(200).json(updatedUser);
     } catch (error: unknown) {
@@ -54,9 +66,9 @@ export class UserController {
     }
   }
 
-  async eliminarUsuario(req: Request, res: Response): Promise<void> {
+  @Delete(':id')
+  async eliminarUsuario(@Param('id') id: string, @Res() res: Response) {
     try {
-      const id = req.params.id;
       await this.userService.eliminarUsuario(id);
       res.status(204).send();
     } catch (error: unknown) {
@@ -68,10 +80,13 @@ export class UserController {
     }
   }
 
-  async bloquearUsuario(req: Request, res: Response): Promise<void> {
+  @Patch(':id/block')
+  async bloquearUsuario(
+    @Param('id') id: string,
+    @Body('motivo') motivo: string,
+    @Res() res: Response,
+  ) {
     try {
-      const id = req.params.id;
-      const motivo = req.body.motivo;
       const userDTO = await this.userService.bloquearUsuario(id, motivo);
       res.status(200).json(userDTO);
     } catch (error: unknown) {
@@ -83,9 +98,12 @@ export class UserController {
     }
   }
 
-  async recuperarContraseña(req: Request, res: Response): Promise<void> {
+  @Post('recover-password')
+  async recuperarContraseña(
+    @Body('email') email: string,
+    @Res() res: Response,
+  ) {
     try {
-      const email = req.body.email;
       await this.userService.recuperarContraseña(email);
       res.status(200).send();
     } catch (error: unknown) {

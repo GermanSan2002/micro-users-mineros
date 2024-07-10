@@ -1,5 +1,6 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { Injectable } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
+import * as jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,29 +12,33 @@ if (!jwtSecret) {
   throw new Error('JWT_SECRET is not defined in the environment variables');
 }
 
+@Injectable()
 export class AuthService {
-  static async hashPassword(password: string): Promise<string> {
+  async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, saltRounds);
   }
 
-  static async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+  async comparePassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 
-  static generateToken(userId: string): string {
+  generateToken(userId: string): string {
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined');
     }
     return jwt.sign({ userId }, jwtSecret, { expiresIn: '1h' });
   }
 
-  static verifyToken(token: string): { userId: string } {
+  verifyToken(token: string): { userId: string } {
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined');
     }
     try {
       const decodedToken = jwt.verify(token, jwtSecret);
-      return decodedToken as { userId: string }; // Especifica el tipo devuelto por jwt.verify
+      return decodedToken as { userId: string };
     } catch (err) {
       throw new Error('Invalid token');
     }
