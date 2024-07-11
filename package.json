@@ -2,9 +2,13 @@
   "name": "user-management-microservice",
   "version": "0.0.1",
   "description": "Microservicio para la gestión de usuarios",
-  "author": "",
+  "author": "GermanSan2002",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MariaBarros/micro-users.git"
+  },
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

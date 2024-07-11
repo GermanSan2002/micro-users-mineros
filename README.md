@@ -1,184 +1,385 @@
-# Microservicio para la gestión de usarios
+# Microservicio de Gestión de Usuarios
 
-Este proyecto es un microservicio para la gestión de usuarios utilizando Node.js, Express y TypeORM.
+## Descripción
+Este microservicio gestiona la creación, modificación, eliminación, y bloqueo de usuarios, así como la recuperación de contraseñas. Está construido con Node.js, NestJS, y utiliza TypeORM para interactuar con la base de datos.
 
-## Requisitos
+## Dependencias
 
-- Node.js
-- npm
-- Mysql (por defecto)
+Las principales dependencias utilizadas en este proyecto son:
+
+- **NestJS**: Framework para construir aplicaciones Node.js eficientes y escalables.
+- **TypeScript**: Superset de JavaScript que añade tipado estático opcional y otras características avanzadas.
+- **TypeORM**: ORM (Object-Relational Mapping) para TypeScript y JavaScript.
+- **Jest**: Framework de pruebas unitarias y de integración.
+- **bcrypt**: Librería para el hash seguro de contraseñas.
+- **jsonwebtoken (JWT)**: Implementación de JSON Web Tokens para la autenticación.
+- **Nodemailer**: Librería para enviar correos electrónicos desde Node.js.
+- **dotenv**: Carga variables de entorno desde un archivo `.env`.
+
+Estas dependencias están especificadas en el archivo `package.json` y pueden ser instaladas usando npm o yarn.
+
+## Tabla de Contenidos
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Comandos Disponibles](#comandos-disponibles)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Variables de Entorno](#variables-de-entorno)
+- [Pruebas](#pruebas)
+- [Despliegue](#despliegue)
+- [Contribución](#contribución)
+- [Licencia](#licencia)
 
 ## Instalación
+1. Clonar el repositorio:
+    ```sh
+    git clone https://github.com/tu-usuario/microservicio-usuarios.git
+    cd microservicio-usuarios
+    ```
 
-1. Clona este repositorio.
-2. Ejecuta `npm install` para instalar las dependencias.
-3. Configura tu base de datos con las variables de entorno en `,env`.
+2. Instalar las dependencias:
+    ```sh
+    npm install
+    ```
 
-## Configuración de la Base de Datos
+3. Configurar las variables de entorno (ver [Variables de Entorno](#variables-de-entorno)).
 
-El proyecto está configurado por defecto para usar PostgreSQL. Si deseas utilizar otro motor de base de datos, sigue estos pasos:
+## Uso
 
-### Cambiar el Motor de Base de Datos
+### Iniciar el Servidor en Modo Desarrollo
 
-1. **Instala el paquete del motor de base de datos deseado**. TypeORM soporta varios motores de bases de datos. Aquí tienes algunos ejemplos de cómo instalar los paquetes correspondientes:
+Para iniciar el servidor en modo desarrollo con recarga en caliente:
 
-   - **MySQL / MariaDB**:
-     ```bash
-     npm install mysql2
-     ```
-  
-   - **PostreSQL**:
-     ```bash
-     npm install postgres
-     ```
+```sh
+npm run start:dev
+```
 
-   - **SQLite**:
-     ```bash
-     npm install sqlite3
-     ```
+El servidor estará disponible en [http://localhost:3000](http://localhost:3000).
 
-   - **Microsoft SQL Server**:
-     ```bash
-     npm install mssql
-     ```
+### Endpoints Disponibles
+1. **Login**
+    - URL: `/users/login`
+    - Método: `POST`
+    - Descripción: Autentica un usuario y devuelve un token.
+    - Cuerpo de la Solicitud:
+      ```json
+      {
+        "email": "usuario@ejemplo.com",
+        "password": "tu_contraseña"
+      }
+      ```
+    - Cuerpo de la Respuesta:
+      ```json
+      {
+        "token": "jwt_token"
+      }
+      ```
+2. **Crear Usuario**
+    - URL: `/users`
+    - Método: `POST`
+    - Descripción: Crea un nuevo usuario.
+    - Cuerpo de la Solicitud:
+      ```json
+      {
+        "email": "usuario@ejemplo.com",
+        "password": "tu_contraseña"
+      }
+      ```
+    - Cuerpo de la Respuesta:
+      ```json
+      {
+        "id": "1",
+        "nombre": "John Doe",
+        "email": "usuario@ejemplo.com",
+        "estado": "active",
+        "fechaCreacion": "2024-07-10T00:00:00.000Z",
+        "fechaModificacion": "2024-07-10T00:00:00.000Z"
+      }
+      ```
+3. **Modificar Usuario**
+    - URL: `/users/:id`
+    - Método: `PUT`
+    - Descripción: Modifica la información de un usuario existente.
+    - Cuerpo de la Solicitud:
+      ```json
+      {
+        "nombre": "Jane Doe",
+        "email": "nuevo_usuario@ejemplo.com",
+        "estado": "inactive"
+      }
+      ```
+    - Cuerpo de la Respuesta:
+      ```json
+      {
+        "id": "1",
+        "nombre": "Jane Doe",
+        "email": "nuevo_usuario@ejemplo.com",
+        "estado": "inactive",
+        "fechaCreacion": "2024-07-10T00:00:00.000Z",
+        "fechaModificacion": "2024-07-10T01:00:00.000Z"
+      }
+      ```
+4. **Bloquear Usuario**
+    - URL: `/users/:id/block`
+    - Método: `PATCH`
+    - Descripción: Bloquea un usuario existente.
+    - Cuerpo de la Solicitud:
+      ```json
+      {
+        "motivo": "violación de términos"
+      }
+      ```
+    - Cuerpo de la Respuesta:
+      ```json
+      {
+        "id": "1",
+        "nombre": "John Doe",
+        "email": "usuario@ejemplo.com",
+        "estado": "blocked",
+        "fechaCreacion": "2024-07-10T00:00:00.000Z",
+        "fechaModificacion": "2024-07-10T01:00:00.000Z"
+      }
+      ```
+5. **Recuperar Contraseña**
+    - URL: `/users/recover-password`
+    - Método: `POST`
+    - Descripción: Envía un correo electrónico para recuperar la contraseña del usuario.
+    - Cuerpo de la Solicitud:
+      ```json
+      {
+        "email": "usuario@ejemplo.com"
+      }
+      ```
+    - Cuerpo de la Respuesta:
+      ```json
+      {
+        "message": "Password recovery email sent"
+      }
+      ```
 
-   - **Oracle**:
-     ```bash
-     npm install oracledb
-     ```
+## Comandos Disponibles
 
-2. **Actualiza el archivo `data.source.ts`**. Modifica la propiedad type en este archivo para reflejar la configuración de tu motor de base de datos. Aquí hay algunos ejemplos de configuraciones para diferentes motores:
+### `npm run start`
 
-   - **PostgreSQL** (por defecto):
-     ```typescript
-     export const DataSourceConfig: DataSourceOptions = {
-      type: 'postgres',
-      host: configService.get<string>('DB_HOST'),
-      port: configService.get<number>('DB_PORT'),
-      username: configService.get<string>('DB_USERNAME'),
-      password: configService.get<string>('DB_PASSWORD'),
-      database: configService.get<string>('DB_DATABASE'),
-      entities: [__dirname + '/../../**/**/*.entity{.ts,.js}'],
-      synchronize: true,
-    };
-     ```
+Inicia el servidor en modo producción.
 
-   - **MySQL / MariaDB**:
-     ```javascript
-     export const DataSourceConfig: DataSourceOptions = {
-      type: 'postgres',
-      host: configService.get<string>('DB_HOST'),
-      port: configService.get<number>('DB_PORT'),
-      username: configService.get<string>('DB_USERNAME'),
-      password: configService.get<string>('DB_PASSWORD'),
-      database: configService.get<string>('DB_DATABASE'),
-      entities: [__dirname + '/../../**/**/*.entity{.ts,.js}'],
-      synchronize: true,
-    };
-     ```
+```sh
+npm run start
+```
 
-   - **SQLite**:
-     ```javascript
-     module.exports = {
-       type: 'sqlite',
-       database: 'database.sqlite',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       }
-     };
-     ```
+### `npm run start:dev`
 
-   - **Microsoft SQL Server**:
-     ```javascript
-     module.exports = {
-       type: 'mssql',
-       host: 'localhost',
-       port: 1433,
-       username: 'yourusername',
-       password: 'yourpassword',
-       database: 'yourdatabase',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       },
-       options: {
-         enableArithAbort: true
-       }
-     };
-     ```
+Inicia el servidor en modo desarrollo con recarga en caliente.
 
-3. **Asegúrate de que la base de datos esté configurada y en ejecución**. Dependiendo del motor de base de datos, puede que necesites ajustar configuraciones adicionales o asegurarte de que los servicios de base de datos estén en funcionamiento.
+```sh
+npm run start:dev
+```
 
-4. **Inicia la aplicación**:
-   ```bash
-   npm run start
+### `npm run start:debug`
 
+Inicia el servidor en modo depuración.
 
+```sh
+npm run start:debug
+```
 
-## Ejecución de la Aplicación
+### `npm run start:prod`
 
-Para iniciar la aplicación, asegúrate de tener configurada tu base de datos y sigue estos pasos:
+Inicia el servidor utilizando el código compilado en dist.
 
-1. **Configuración de Variables de Entorno**:
-   Antes de ejecutar la aplicación, asegúrate de configurar las siguientes variables de entorno:
+```sh
+npm run start:prod
+```
 
-   ```dotenv
-   JWT_SECRET=your_jwt_secret
-   HASH_SALT_ROUNDS=10
-   DB_TYPE=postgres
-   DB_HOST=yourhost
-   DB_PORT=5432
-   DB_USERNAME=youruser
-   DB_PASSWORD='yourpassword'
-   DB_DATABASE='yourdatabase'
+### `npm run build`
 
-   Reemplaza your_jwt_secret, yourhost, youruser, yourpassword, y yourdatabase con los valores específicos de tu entorno y base de datos.
+Compila el proyecto TypeScript a JavaScript.
 
-2. **Instalación de Dependencias**:
-  Si aún no has instalado las dependencias del proyecto, ejecuta:
-  ```bash
-   npm install
+```sh
+npm run build
+```
 
-3. **Compilación del Código (Opcional)**:
-  Si deseas compilar el código TypeScript a JavaScript, ejecuta:
-  ```bash
-   npm run build
+### `npm run test`
 
-4. **Inicio de la Aplicación**:
-  Para iniciar la aplicación en modo producción, ejecuta:
-  ```bash
-   npm run start
-  
-  Esto iniciará la aplicación en el puerto configurado o en el puerto 3000 si process.env.PORT no está definido.
+Ejecuta las pruebas unitarias usando Jest.
 
+```sh
+npm run test
+```
 
-## Ejecución de pruebas
-Para ejecutar las pruebas unitarias, utiliza el siguiente comando:
-```bash
-  npm test
-Este comando ejecutará las pruebas utilizando Jest y mostrará los resultados en la consola.
+### `npm run test:watch`
+
+Ejecuta las pruebas unitarias en modo observación para que se vuelvan a ejecutar automáticamente cuando se detecten cambios.
+
+```sh
+npm run test:watch
+```
+
+### `npm run test:cov`
+
+Ejecuta las pruebas unitarias y genera un reporte de cobertura de código.
+
+```sh
+npm run test:cov
+```
+
+### `npm run test:debug`
+
+Ejecuta las pruebas unitarias en modo depuración.
+
+```sh
+npm run test:debug
+```
+
+### `npm run test:e2e`
+
+Ejecuta las pruebas de extremo a extremo (e2e).
+
+```sh
+npm run test:e2e
+```
+
+### `npm run lint`
+
+Ejecuta ESLint para analizar y encontrar problemas en el código.
+
+```sh
+npm run lint
+```
+
+### `npm run format`
+
+Formatea el código utilizando Prettier.
+
+```sh
+npm run format
+```
+
+## Estructura del Proyecto
+
+El proyecto sigue una estructura estándar de NestJS, con los siguientes directorios y archivos principales:
+
+```plaintext
+project-root/
+│
+├── dist/ # Directorio de salida para archivos compilados
+├── node_modules/ # Dependencias instaladas por npm
+├── src/ # Código fuente del proyecto
+│ ├── app.controller.ts # Controlador principal
+│ ├── app.module.ts # Módulo raíz de la aplicación
+│ ├── app.service.ts # Servicio principal
+│ ├── main.ts # Punto de entrada de la aplicación
+│ ├── ...
+│ ├── users/ # Módulo de usuarios
+│ │ ├── dto/ # Objetos de transferencia de datos (DTOs)
+│ │ ├── entities/ # Entidades de la base de datos
+│ │ ├── services/ # Servicios relacionados con los usuarios
+│ │ ├── controllers/ # Controladores de gestión de usuarios
+│ │ ├── users.module.ts # Módulo de gestión de usuarios
+│ │ └── ...
+│ └── ...
+├── test/ # Configuraciones y archivos de pruebas
+│ ├── jest-e2e.json # Configuración de pruebas end-to-end con Jest
+│ └── ...
+├── .gitignore # Archivos y directorios ignorados por Git
+├── package.json # Archivo de configuración de npm
+├── tsconfig.json # Configuración del compilador TypeScript
+└── README.md # Documentación del proyecto
+```
+
+### Explicación de la Estructura
+
+- **`dist/`**: Directorio donde se generan los archivos compilados cuando ejecutas `npm run build`.
+- **`src/`**: Directorio que contiene todo el código
+
+ fuente de la aplicación. Aquí es donde se desarrollan los módulos, controladores, servicios y entidades.
+- **`node_modules/`**: Directorio generado automáticamente por npm, que contiene todas las dependencias instaladas.
+- **`test/`**: Directorio donde se colocan las configuraciones y archivos relacionados con las pruebas.
+- **`package.json`**: Archivo de configuración de npm, donde se definen las dependencias, scripts, y otra configuración del proyecto.
+- **`tsconfig.json`**: Archivo de configuración de TypeScript, donde se especifican las opciones del compilador.
+- **`.gitignore`**: Archivo que define qué archivos y directorios deben ser ignorados por Git.
+- **`README.md`**: Archivo de documentación del proyecto, que estás leyendo actualmente.
+
+## Variables de Entorno
+
+Asegúrate de configurar las siguientes variables de entorno en un archivo `.env` en la raíz de tu proyecto o como variables de entorno del sistema.
+
+```plaintext
+# Configuración del servidor
+PORT=3000
+
+# Base de datos
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=usuario_db
+DB_PASSWORD=password_db
+DB_DATABASE=nombre_db
+
+# JWT
+JWT_SECRET=secreto_jwt
+JWT_EXPIRATION_TIME=3600 # Tiempo de expiración en segundos (ejemplo: 1 hora)
+
+# Nodemailer (SMTP)
+MAIL_HOST=email-smtp.us-east-2.amazonaws.com
+MAIL_PORT=587
+MAIL_USER=AKIAU6GDYDSVWASILWUP
+MAIL_PASS=BLnQaI2sI0Ku6zvCoOM+r2AaG2GUOy3vjNpcD6pcZ9ew
+MAIL_FROM=your_email@example.com
+```
+
+## Pruebas
+
+El proyecto utiliza Jest para pruebas unitarias y de integración. Puedes ejecutar las pruebas con los siguientes comandos:
+
+```sh
+npm run test
+```
+
+Para ejecutar las pruebas en modo observación (watch):
+
+```sh
+npm run test:watch
+```
+
+Para generar un reporte de cobertura de código:
+
+```sh
+npm run test:cov
+```
+
+Para ejecutar pruebas end-to-end (e2e):
+
+```sh
+npm run test:e2e
+```
+
+## Despliegue
+
+Para desplegar el proyecto en producción, asegúrate de compilar el código TypeScript a JavaScript:
+
+```sh
+npm run build
+```
+
+Luego, puedes iniciar el servidor usando el comando:
+
+```sh
+npm run start:prod
+```
+
+El proyecto también está configurado para ser desplegado utilizando Docker y Kubernetes en AWS. Para más detalles sobre el despliegue, consulta la documentación adicional proporcionada en el repositorio.
+
+## Contribución
+
+¡Contribuciones son bienvenidas! Por favor, sigue estos pasos para contribuir:
+
+1. Haz un fork del repositorio.
+2. Crea una nueva rama (`git checkout -b feature/nueva-funcionalidad`).
+3. Realiza tus cambios y haz commits (`git commit -am 'Añadir nueva funcionalidad'`).
+4. Sube tus cambios (`git push origin feature/nueva-funcionalidad`).
+5. Abre un Pull Request.
+
+Asegúrate de que tu código sigue las normas de estilo del proyecto y pasa todas las pruebas.
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
