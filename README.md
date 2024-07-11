@@ -28,6 +28,9 @@ Estas dependencias están especificadas en el archivo `package.json` y pueden se
 - [Despliegue](#despliegue)
 - [Contribución](#contribución)
 - [Licencia](#licencia)
+- [Publicación en npm](#publicación-en-npm)
+- [Instalación desde npm](#instalación-desde-npm)
+- [Uso del Paquete npm](#uso-del-paquete-npm)
 
 ## Instalación
 1. Clonar el repositorio:
@@ -383,3 +386,58 @@ Asegúrate de que tu código sigue las normas de estilo del proyecto y pasa toda
 ## Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+
+## Publicación en npm
+
+Para publicar una nueva versión del paquete en npm:
+
+1. Asegúrate de haber iniciado sesión en npm:
+    ```sh
+    npm login
+    ```
+
+2. Incrementa la versión en `package.json` siguiendo el versionado semántico (semver):
+    ```sh
+    npm version patch # o "minor" o "major"
+    ```
+
+3. Publica el paquete:
+    ```sh
+    npm publish
+    ```
+
+4. Crea un nuevo tag y push a GitHub:
+    ```sh
+    git tag vX.X.X
+    git push origin vX.X.X
+    ```
+
+## Instalación desde npm
+
+Puedes instalar este paquete desde npm usando npm o yarn:
+
+```sh
+npm install microservicio-usuarios
+```
+
+o
+
+```sh
+yarn add microservicio-usuarios
+```
+
+## Uso del Paquete npm
+
+Una vez instalado desde npm, puedes importar y utilizar el paquete en tu proyecto de la siguiente manera:
+
+```javascript
+const { UserService } = require('microservicio-gestion-usuarios');
+
+// Ejemplo de uso del servicio de usuarios
+const userService = new UserService();
+
+// Llamada a métodos del servicio
+userService.createUser({ email: 'usuario@ejemplo.com', password: 'contraseña' })
+  .then(user => console.log('Usuario creado:', user))
+  .catch(error => console.error('Error al crear usuario:', error));
+```
