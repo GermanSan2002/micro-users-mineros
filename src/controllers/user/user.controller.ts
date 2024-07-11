@@ -105,7 +105,7 @@ export class UserController {
   ) {
     try {
       await this.userService.recuperarContraseña(email);
-      res.status(200).send();
+      res.status(200).send({ message: 'Password recovery email sent' });
     } catch (error: unknown) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

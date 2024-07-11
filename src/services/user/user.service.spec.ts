@@ -8,12 +8,15 @@ import { CredentialsDTO } from '../../dto/credentialsDTO';
 import { Operation } from '../../entities/Operation';
 import { User } from '../../entities/User';
 import { UserDTO } from '../../dto/userDTO';
+import { ConfigService } from '@nestjs/config';
+import { MailService } from '../mail/mail.service';
 
 describe('UserService', () => {
   let service: UserService;
   let userRepository: Repository<User>;
   let operationRepository: Repository<Operation>;
   let authService: AuthService;
+  let mailService: MailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -35,6 +38,18 @@ describe('UserService', () => {
             hashPassword: jest.fn(),
           },
         },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('http://example.com'),
+          },
+        },
+        {
+          provide: MailService,
+          useValue: {
+            sendMail: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -44,6 +59,7 @@ describe('UserService', () => {
       getRepositoryToken(Operation),
     );
     authService = module.get<AuthService>(AuthService);
+    mailService = module.get<MailService>(MailService);
   });
 
   it('should be defined', () => {
@@ -221,12 +237,32 @@ describe('UserService', () => {
   });
 
   describe('recuperarContraseña', () => {
-    it('should call the recovery logic', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    it('should throw NotFoundException if user does not exist', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
 
-      await service.recuperarContraseña('test@test.com');
+      await expect(
+        service.recuperarContraseña('test@example.com'),
+      ).rejects.toThrow(NotFoundException);
+    });
 
-      expect(consoleSpy).toHaveBeenCalledWith('test@test.com');
+    it('should generate a token and send a reset email if user exists', async () => {
+      const user = new User();
+      user.id = '1';
+      user.email = 'test@example.com';
+
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
+      jest.spyOn(authService, 'generateToken').mockReturnValue('test-token');
+      jest.spyOn(mailService, 'sendMail').mockResolvedValue(void 0);
+
+      await service.recuperarContraseña('test@example.com');
+
+      expect(authService.generateToken).toHaveBeenCalledWith(user.id);
+      expect(mailService.sendMail).toHaveBeenCalledWith(
+        'test@example.com',
+        'Password Recovery',
+        'To reset your password, please click the following link: http://example.com/reset-password?token=test-token',
+        '<p>To reset your password, please click the following link: <a href="http://example.com/reset-password?token=test-token">http://example.com/reset-password?token=test-token</a></p>',
+      );
     });
   });
 });

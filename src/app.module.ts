@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { User } from './entities/User';
 import { Operation } from './entities/Operation';
 import { DataSourceConfig } from './database/data.source';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { DataSourceConfig } from './database/data.source';
     TypeOrmModule.forFeature([User, Operation]),
     UserModule,
     AuthModule,
+    MailModule,
   ],
   controllers: [AppController, UserController],
   providers: [AppService, UserService, AuthService],

@@ -6,13 +6,13 @@ Este proyecto es un microservicio para la gestión de usuarios utilizando Node.j
 
 - Node.js
 - npm
-- PostgreSQL (por defecto)
+- Mysql (por defecto)
 
 ## Instalación
 
 1. Clona este repositorio.
 2. Ejecuta `npm install` para instalar las dependencias.
-3. Configura tu base de datos en el archivo `ormconfig.js`.
+3. Configura tu base de datos con las variables de entorno en `,env`.
 
 ## Configuración de la Base de Datos
 
@@ -25,6 +25,11 @@ El proyecto está configurado por defecto para usar PostgreSQL. Si deseas utiliz
    - **MySQL / MariaDB**:
      ```bash
      npm install mysql2
+     ```
+  
+   - **PostreSQL**:
+     ```bash
+     npm install postgres
      ```
 
    - **SQLite**:
@@ -42,62 +47,34 @@ El proyecto está configurado por defecto para usar PostgreSQL. Si deseas utiliz
      npm install oracledb
      ```
 
-2. **Actualiza el archivo `ormconfig.js`**. Modifica las propiedades en este archivo para reflejar la configuración de tu motor de base de datos. Aquí hay algunos ejemplos de configuraciones para diferentes motores:
+2. **Actualiza el archivo `data.source.ts`**. Modifica la propiedad type en este archivo para reflejar la configuración de tu motor de base de datos. Aquí hay algunos ejemplos de configuraciones para diferentes motores:
 
    - **PostgreSQL** (por defecto):
-     ```javascript
-     module.exports = {
-       type: 'postgres',
-       host: 'localhost',
-       port: 5432,
-       username: 'yourusername',
-       password: 'yourpassword',
-       database: 'yourdatabase',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       }
-     };
+     ```typescript
+     export const DataSourceConfig: DataSourceOptions = {
+      type: 'postgres',
+      host: configService.get<string>('DB_HOST'),
+      port: configService.get<number>('DB_PORT'),
+      username: configService.get<string>('DB_USERNAME'),
+      password: configService.get<string>('DB_PASSWORD'),
+      database: configService.get<string>('DB_DATABASE'),
+      entities: [__dirname + '/../../**/**/*.entity{.ts,.js}'],
+      synchronize: true,
+    };
      ```
 
    - **MySQL / MariaDB**:
      ```javascript
-     module.exports = {
-       type: 'mysql',
-       host: 'localhost',
-       port: 3306,
-       username: 'yourusername',
-       password: 'yourpassword',
-       database: 'yourdatabase',
-       synchronize: true,
-       logging: false,
-       entities: [
-         'src/entities/**/*.js'
-       ],
-       migrations: [
-         'src/migrations/**/*.js'
-       ],
-       subscribers: [
-         'src/subscribers/**/*.js'
-       ],
-       cli: {
-         entitiesDir: 'src/entities',
-         migrationsDir: 'src/migrations',
-         subscribersDir: 'src/subscribers'
-       }
-     };
+     export const DataSourceConfig: DataSourceOptions = {
+      type: 'postgres',
+      host: configService.get<string>('DB_HOST'),
+      port: configService.get<number>('DB_PORT'),
+      username: configService.get<string>('DB_USERNAME'),
+      password: configService.get<string>('DB_PASSWORD'),
+      database: configService.get<string>('DB_DATABASE'),
+      entities: [__dirname + '/../../**/**/*.entity{.ts,.js}'],
+      synchronize: true,
+    };
      ```
 
    - **SQLite**:

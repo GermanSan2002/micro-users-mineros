@@ -197,4 +197,32 @@ describe('UserController', () => {
       expect(res.json).toHaveBeenCalledWith({ message: 'Error blocking user' });
     });
   });
+
+  describe('recuperarContraseña', () => {
+    it('should call userService.recuperarContraseña and return success message', async () => {
+      await controller.recuperarContraseña('test@example.com', res);
+
+      expect(userService.recuperarContraseña).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.send).toHaveBeenCalledWith({
+        message: 'Password recovery email sent',
+      });
+    });
+
+    it('should handle errors and return 500 status', async () => {
+      (userService.recuperarContraseña as jest.Mock).mockRejectedValue(
+        new Error('Error occurred'),
+      );
+
+      await controller.recuperarContraseña('test@example.com', res);
+
+      expect(userService.recuperarContraseña).toHaveBeenCalledWith(
+        'test@example.com',
+      );
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Error occurred' });
+    });
+  });
 });

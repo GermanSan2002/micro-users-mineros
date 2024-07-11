@@ -6,6 +6,8 @@ import { CredentialsDTO } from '../../dto/credentialsDTO';
 import { UserDTO } from '../../dto/userDTO';
 import { Operation } from '../../entities/Operation';
 import { User } from '../../entities/User';
+import { MailService } from '../mail/mail.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
@@ -15,6 +17,8 @@ export class UserService {
     @InjectRepository(Operation)
     private readonly operationRepository: Repository<Operation>,
     private readonly authService: AuthService,
+    private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async loginUsuario(credentialsDTO: CredentialsDTO): Promise<string> {
@@ -101,7 +105,18 @@ export class UserService {
   }
 
   async recuperarContraseña(email: string): Promise<void> {
-    console.log(email);
-    // Implementar la lógica de recuperación de contraseña
+    const user = await this.userRepository.findOneBy({ email });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const token = this.authService.generateToken(user.id); // Usa el token JWT como token de recuperación
+    const resetPasswordUrl = `${this.configService.get<string>('FRONTEND_URL')}/reset-password?token=${token}`;
+
+    const subject = 'Password Recovery';
+    const text = `To reset your password, please click the following link: ${resetPasswordUrl}`;
+    const html = `<p>To reset your password, please click the following link: <a href="${resetPasswordUrl}">${resetPasswordUrl}</a></p>`;
+
+    await this.mailService.sendMail(email, subject, text, html);
   }
 }
