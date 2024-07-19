@@ -12,12 +12,23 @@ import { Response } from 'express';
 import { CredentialsDTO } from '../../dto/credentialsDTO';
 import { UserDTO } from '../../dto/userDTO';
 import { UserService } from '../../services/user/user.service';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 
+@ApiTags('users')
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('login')
+  @ApiBody({ type: CredentialsDTO })
+  @ApiResponse({ status: 200, description: 'Login successful, token returned' })
+  @ApiResponse({ status: 400, description: 'Invalid credentials' })
   async login(@Body() credentialsDTO: CredentialsDTO, @Res() res: Response) {
     try {
       const token = await this.userService.loginUsuario(credentialsDTO);
@@ -32,6 +43,10 @@ export class UserController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiBody({ type: CredentialsDTO })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async crearUsuario(
     @Body() credentialsDTO: CredentialsDTO,
     @Res() res: Response,
@@ -49,6 +64,11 @@ export class UserController {
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Update a user' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: UserDTO })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async modificarUsuario(
     @Param('id') id: string,
     @Body() userDTO: UserDTO,
@@ -67,6 +87,10 @@ export class UserController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a user' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 204, description: 'User deleted successfully' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async eliminarUsuario(@Param('id') id: string, @Res() res: Response) {
     try {
       await this.userService.eliminarUsuario(id);
@@ -81,6 +105,11 @@ export class UserController {
   }
 
   @Patch(':id/block')
+  @ApiOperation({ summary: 'Block a user' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ schema: { example: { motivo: 'Reason for blocking' } } })
+  @ApiResponse({ status: 200, description: 'User blocked successfully' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async bloquearUsuario(
     @Param('id') id: string,
     @Body('motivo') motivo: string,
@@ -99,6 +128,10 @@ export class UserController {
   }
 
   @Post('recover-password')
+  @ApiOperation({ summary: 'Recover password' })
+  @ApiBody({ schema: { example: { email: 'user@example.com' } } })
+  @ApiResponse({ status: 200, description: 'Password recovery email sent' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async recuperarContraseña(
     @Body('email') email: string,
     @Res() res: Response,

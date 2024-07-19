@@ -121,6 +121,8 @@ describe('UserService', () => {
       user.password = hashedPassword;
       user.estado = 'active';
 
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined); // Simula que no encuentra el usuario
+
       jest
         .spyOn(userRepository, 'save')
         .mockImplementation(async (newUser: User) => {

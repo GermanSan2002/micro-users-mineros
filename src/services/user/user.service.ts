@@ -8,6 +8,7 @@ import { Operation } from '../../entities/Operation';
 import { User } from '../../entities/User';
 import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
+import { ErrorManager } from '../../utils/error.manager';
 
 @Injectable()
 export class UserService {
@@ -42,20 +43,37 @@ export class UserService {
 
   async crearUsuario(credentialsDTO: CredentialsDTO): Promise<UserDTO> {
     const { email, password } = credentialsDTO;
+
+    const findUsuario = await this.userRepository.findOne({
+      where: {
+        email: email,
+      },
+    });
+
+    if (findUsuario) {
+      throw new ErrorManager({
+        type: 'BAD_REQUEST',
+        message: 'El email ya existe',
+      });
+    }
+
     const hashedPassword = await this.authService.hashPassword(password);
     const user = new User();
+    console.log(hashedPassword);
+    console.log(email);
     user.nombre = 'defaultName';
     user.email = email;
     user.password = hashedPassword;
     user.estado = 'active';
-    await this.userRepository.save(user);
+    console.log(JSON.stringify(user, null, 2));
+    const savedUser = await this.userRepository.save(user);
     return new UserDTO(
-      user.id,
-      user.nombre,
-      user.email,
-      user.estado,
-      user.fechaCreacion,
-      user.fechaModificacion,
+      savedUser.id,
+      savedUser.nombre,
+      savedUser.email,
+      savedUser.estado,
+      savedUser.fechaCreacion,
+      savedUser.fechaModificacion,
     );
   }
 

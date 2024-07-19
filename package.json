@@ -2,7 +2,7 @@
   "name": "user-management-microservice",
   "version": "0.0.1",
   "description": "Microservicio para la gestión de usuarios",
-  "author": "GermanSan2002",
+  "author": "German Sancho Miñano",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MariaBarros/micro-users.git"
@@ -29,6 +29,7 @@
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.4.0",
     "@nestjs/typeorm": "^10.0.2",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
@@ -38,6 +39,7 @@
     "postgres": "^3.4.4",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.16"
   },
   "devDependencies": {
