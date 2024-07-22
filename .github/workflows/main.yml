@@ -21,12 +21,12 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '18'  # Actualizamos a Node.js 18
+        node-version: '18'
 
     - name: Install dependencies
       run: npm install
 
     - name: Run Jest tests
       env:
-        JWT_SECRET: 'secret_test'
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
       run: npm run test -- --runInBand
