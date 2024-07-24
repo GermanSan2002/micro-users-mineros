@@ -27,12 +27,13 @@ Estas dependencias están especificadas en el archivo `package.json` y pueden se
 - [Pruebas](#pruebas)
 - [Uso de Swagger](#uso-de-swagger)
 - [Despliegue](#despliegue)
+- [Despliegue con Kubernetes en Google Cloud](#despliegue-con-kubernetes-en-google-cloud)
+- [Despliegue con Kubernetes en AWS](#despliegue-con-kubernetes-en-aws)
 - [Contribución](#contribución)
 - [Licencia](#licencia)
 - [Publicación en npm](#publicación-en-npm)
 - [Instalación desde npm](#instalación-desde-npm)
 - [Uso del Paquete npm](#uso-del-paquete-npm)
-- [Despliegue con Kubernetes](#despliegue-con-kubernates)
 
 ## Instalación
 1. Clonar el repositorio:
@@ -452,6 +453,468 @@ npm run start:prod
 
 El proyecto también está configurado para ser desplegado utilizando Docker y Kubernetes en AWS. Para más detalles sobre el despliegue, consulta la documentación adicional proporcionada en el repositorio.
 
+## Despliegue con Kubernetes en Google Cloud
+
+### Pasos para Desplegar la Aplicación en Kubernetes usando Google Cloud
+
+1. **Iniciar sesión en gcloud**
+
+   Asegúrate de tener el SDK de Google Cloud instalado y luego inicia sesión en tu cuenta de Google Cloud:
+
+   ```sh
+   gcloud auth login
+   ```
+
+2. **Crear el Cluster si no Existe**
+
+   Crea un clúster de Kubernetes usando `gcloud` si aún no tienes uno. A continuación se muestra un ejemplo de cómo crear un clúster:
+
+   ```sh
+   gcloud container clusters create my-cluster --zone us-central1-a --num-nodes=3
+   ```
+
+3. **Construir las Imágenes Docker con Docker Compose**
+
+   Usa Docker Compose para construir las imágenes Docker:
+
+   ```sh
+   docker-compose build
+   ```
+
+4. **Subir las Imágenes Generadas a Docker Hub o a GCR**
+
+   Etiqueta las imágenes construidas y súbelas a Docker Hub o Google Container Registry (GCR). En este caso, usaremos GCR:
+
+   ```sh
+   docker tag micro-users-app gcr.io/your-gcp-project-id/micro-users-app:v1
+   docker tag mysql gcr.io/your-gcp-project-id/mysql:v1
+   ```
+
+5. **Autenticar Docker con GCR**
+
+   Autentica Docker con GCR para poder subir las imágenes:
+
+   ```sh
+   gcloud auth configure-docker
+   ```
+
+6. **Subir las Imágenes a GCR**
+
+   Sube las imágenes etiquetadas a GCR:
+
+   ```sh
+   docker push gcr.io/your-gcp-project-id/micro-users-app:v1
+   docker push gcr.io/your-gcp-project-id/mysql:v1
+   ```
+
+7. **Verificar que las Imágenes se han Subido**
+
+   Verifica que las imágenes se hayan subido correctamente a GCR:
+
+   ```sh
+   gcloud container images list --repository=gcr.io/your-gcp-project-id
+   ```
+
+8. **Actualizar y Aplicar la Configuración en Kubernetes**
+
+   Asegúrate de que tus archivos YAML de configuración estén actualizados con el nombre correcto de las imágenes si has usado Docker Hub. Aquí tienes los archivos YAML usados:
+
+   - `k8s/secrets.yaml`
+
+     ```yaml
+     apiVersion: v1
+     kind: Secret
+     metadata:
+       name: app-secrets
+     type: Opaque
+     data:
+       jwt_secret: eW91cl9qd3Rfc2VjcmV0
+       db_password: MTIzNDU2Nzg5
+       mail_user: c29neWdvayBkaW9zQGdtYWlsLmNvbQ==
+       mail_pass: bWJ4Z2ZneGJwdWp6enhk
+     ```
+
+   - `k8s/mysql.yaml`
+
+     ```yaml
+     apiVersion: v1
+     kind: PersistentVolumeClaim
+     metadata:
+       name: mysql-pv-claim
+     spec:
+       accessModes:
+         - ReadWriteOnce
+       resources:
+         requests:
+           storage: 20Gi
+     ---
+     apiVersion: v1
+     kind: Service
+     metadata:
+       name: mysql
+     spec:
+       ports:
+         - port: 3306
+       selector:
+         app: mysql
+     ---
+     apiVersion: apps/v1
+     kind: Deployment
+     metadata:
+       name: mysql
+     spec:
+       selector:
+         matchLabels:
+           app: mysql
+       template:
+         metadata:
+           labels:
+             app: mysql
+         spec:
+           containers:
+           - name: mysql
+             image: gcr.io/your-gcp-project-id/mysql:v1
+             ports:
+             - containerPort: 3306
+             env:
+             - name: MYSQL_ROOT_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: db_password
+             - name: MYSQL_DATABASE
+               value: "users_service"
+     ```
+
+   - `k8s/deployment.yaml`
+
+     ```yaml
+     apiVersion: apps/v1
+     kind: Deployment
+     metadata:
+       name: micro-users
+     spec:
+       selector:
+         matchLabels:
+           app: micro-users
+       template:
+         metadata:
+           labels:
+             app: micro-users
+         spec:
+           containers:
+           - name: micro-users
+             image: gcr.io/your-gcp-project-id/micro-users-app:v1
+             ports:
+             - containerPort: 3000
+             env:
+             - name: JWT_SECRET
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: jwt_secret
+             - name: HASH_SALT_ROUNDS
+               value: "10"
+             - name: DB_HOST
+               value: "mysql"
+             - name: DB_PORT
+               value: "3306"
+             - name: DB_USERNAME
+               value: "root"
+             - name: DB_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: db_password
+             - name: DB_DATABASE
+               value: "users_service"
+             - name: MAIL_HOST
+               value: "smtp.gmail.com"
+             - name: MAIL_PORT
+               value: "587"
+             - name: MAIL_USER
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: mail_user
+             - name: MAIL_PASS
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: mail_pass
+             - name: MAIL_FROM
+               value: "soygokussjdios@gmail.com"
+             - name: FRONTEND_URL
+               value: "frontend.com"
+     ```
+
+   - `k8s/service.yaml`
+
+     ```yaml
+     apiVersion: v1
+     kind: Service
+     metadata:
+       name: micro-users
+     spec:
+       type: LoadBalancer
+       ports:
+         - port: 80
+           targetPort: 3000
+       selector:
+         app: micro-users
+     ```
+
+   Aplica las configuraciones en Kubernetes:
+
+   ```sh
+   kubectl apply -f k8s/secrets.yaml
+   kubectl apply -f k8s/mysql.yaml
+   kubectl apply -f k8s/deployment.yaml
+   kubectl apply -f k8s/service.yaml
+   ```
+
+### Nota
+
+- Reemplaza `your-gcp-project-id` con el ID de tu proyecto en Google Cloud.
+- Asegúrate de codificar en base64 las variables de entorno sensibles en el archivo `secrets.yaml`.
+
+---
+
+Este es un ejemplo de cómo podrías estructurar la sección de despliegue en Kubernetes en tu archivo `README.md`. Ajusta los detalles específicos según tu proyecto y configuración.
+
+## Despliegue con Kubernetes en AWS
+
+### Pasos para Desplegar la Aplicación en Kubernetes usando Amazon EKS
+
+1. **Configurar AWS CLI**
+
+   Asegúrate de tener la AWS CLI instalada y configurada con tus credenciales de AWS:
+
+   ```sh
+   aws configure
+   ```
+
+2. **Crear un Clúster de EKS**
+
+   Utiliza `eksctl` para crear un clúster de EKS. Si no tienes `eksctl` instalado, sigue las instrucciones [aquí](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) para instalarlo.
+
+   ```sh
+   eksctl create cluster --name my-cluster --region us-west-2 --nodegroup-name standard-workers --node-type t3.medium --nodes 3
+   ```
+
+3. **Construir las Imágenes Docker con Docker Compose**
+
+   Usa Docker Compose para construir las imágenes Docker:
+
+   ```sh
+   docker-compose build
+   ```
+
+4. **Subir las Imágenes Generadas a Amazon ECR**
+
+   Etiqueta las imágenes construidas y súbelas a Amazon ECR. Primero, crea un repositorio en Amazon ECR:
+
+   ```sh
+   aws ecr create-repository --repository-name micro-users-app
+   aws ecr create-repository --repository-name mysql
+   ```
+
+   Obtén el URI del repositorio y etiqueta las imágenes:
+
+   ```sh
+   docker tag micro-users-app:latest <aws_account_id>.dkr.ecr.<region>.amazonaws.com/micro-users-app:latest
+   docker tag mysql:latest <aws_account_id>.dkr.ecr.<region>.amazonaws.com/mysql:latest
+   ```
+
+5. **Autenticar Docker con Amazon ECR**
+
+   Autentica Docker con tu registro de Amazon ECR:
+
+   ```sh
+   aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
+   ```
+
+6. **Subir las Imágenes a Amazon ECR**
+
+   Sube las imágenes etiquetadas a Amazon ECR:
+
+   ```sh
+   docker push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/micro-users-app:latest
+   docker push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/mysql:latest
+   ```
+
+7. **Verificar que las Imágenes se han Subido**
+
+   Verifica que las imágenes se hayan subido correctamente a Amazon ECR:
+
+   ```sh
+   aws ecr describe-images --repository-name micro-users-app
+   aws ecr describe-images --repository-name mysql
+   ```
+
+8. **Actualizar y Aplicar la Configuración en Kubernetes**
+
+   Asegúrate de que tus archivos YAML de configuración estén actualizados con el nombre correcto de las imágenes en Amazon ECR. Aquí tienes los archivos YAML usados:
+
+   - `k8s/secrets.yaml`
+
+     ```yaml
+     apiVersion: v1
+     kind: Secret
+     metadata:
+       name: app-secrets
+     type: Opaque
+     data:
+       jwt_secret: eW91cl9qd3Rfc2VjcmV0
+       db_password: MTIzNDU2Nzg5
+       mail_user: c29neWdvayBkaW9zQGdtYWlsLmNvbQ==
+       mail_pass: bWJ4Z2ZneGJwdWp6enhk
+     ```
+
+   - `k8s/mysql.yaml`
+
+     ```yaml
+     apiVersion: v1
+     kind: PersistentVolumeClaim
+     metadata:
+       name: mysql-pv-claim
+     spec:
+       accessModes:
+         - ReadWriteOnce
+       resources:
+         requests:
+           storage: 20Gi
+     ---
+     apiVersion: v1
+     kind: Service
+     metadata:
+       name: mysql
+     spec:
+       ports:
+         - port: 3306
+       selector:
+         app: mysql
+     ---
+     apiVersion: apps/v1
+     kind: Deployment
+     metadata:
+       name: mysql
+     spec:
+       selector:
+         matchLabels:
+           app: mysql
+       template:
+         metadata:
+           labels:
+             app: mysql
+         spec:
+           containers:
+           - name: mysql
+             image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/mysql:latest
+             ports:
+             - containerPort: 3306
+             env:
+             - name: MYSQL_ROOT_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: db_password
+             - name: MYSQL_DATABASE
+               value: "users_service"
+     ```
+
+   - `k8s/deployment.yaml`
+
+     ```yaml
+     apiVersion: apps/v1
+     kind: Deployment
+     metadata:
+       name: micro-users
+     spec:
+       selector:
+         matchLabels:
+           app: micro-users
+       template:
+         metadata:
+           labels:
+             app: micro-users
+         spec:
+           containers:
+           - name: micro-users
+             image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/micro-users-app:latest
+             ports:
+             - containerPort: 3000
+             env:
+             - name: JWT_SECRET
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: jwt_secret
+             - name: HASH_SALT_ROUNDS
+               value: "10"
+             - name: DB_HOST
+               value: "mysql"
+             - name: DB_PORT
+               value: "3306"
+             - name: DB_USERNAME
+               value: "root"
+             - name: DB_PASSWORD
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: db_password
+             - name: DB_DATABASE
+               value: "users_service"
+             - name: MAIL_HOST
+               value: "smtp.gmail.com"
+             - name: MAIL_PORT
+               value: "587"
+             - name: MAIL_USER
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: mail_user
+             - name: MAIL_PASS
+               valueFrom:
+                 secretKeyRef:
+                   name: app-secrets
+                   key: mail_pass
+             - name: MAIL_FROM
+               value: "soygokussjdios@gmail.com"
+             - name: FRONTEND_URL
+               value: "frontend.com"
+     ```
+
+   - `k8s/service.yaml`
+
+     ```yaml
+     apiVersion: v1
+     kind: Service
+     metadata:
+       name: micro-users
+     spec:
+       type: LoadBalancer
+       ports:
+         - port: 80
+           targetPort: 3000
+       selector:
+         app: micro-users
+     ```
+
+   Aplica las configuraciones en Kubernetes:
+
+   ```sh
+   kubectl apply -f k8s/secrets.yaml
+   kubectl apply -f k8s/mysql.yaml
+   kubectl apply -f k8s/deployment.yaml
+   kubectl apply -f k8s/service.yaml
+   ```
+
+### Nota
+
+- Reemplaza `<aws_account_id>` y `<region>` con tu ID de cuenta de AWS y la región correspondiente.
+- Asegúrate de codificar en base64 las variables de entorno sensibles en el archivo `secrets.yaml`.
+
 ## Contribución
 
 ¡Contribuciones son bienvenidas! Por favor, sigue estos pasos para contribuir:
@@ -522,296 +985,3 @@ userService.createUser({ email: 'usuario@ejemplo.com', password: 'contraseña' }
   .then(user => console.log('Usuario creado:', user))
   .catch(error => console.error('Error al crear usuario:', error));
 ```
-
-## Despliegue con Kubernetes
-
-Esta sección describe los pasos necesarios para desplegar la aplicación en un clúster de Kubernetes.
-
-### 1. Crear el archivo Dockerfile
-
-Asegúrate de tener el siguiente `Dockerfile` en la raíz de tu proyecto:
-
-```dockerfile
-# Usar la imagen oficial de Node.js 18 como base
-FROM node:18
-
-# Establecer el directorio de trabajo dentro del contenedor
-WORKDIR /usr/src/app
-
-# Copiar el package.json y el package-lock.json
-COPY package*.json ./
-
-# Instalar las dependencias
-RUN npm install
-
-# Copiar el resto de la aplicación
-COPY . .
-
-# Compilar la aplicación
-RUN npm run build
-
-# Exponer el puerto de la aplicación
-EXPOSE 3000
-
-# Definir el comando de inicio
-CMD ["npm", "run", "start:prod"]
-```
-
-### 2. Crear el archivo .dockerignore
-
-Crea un archivo `.dockerignore` en la raíz de tu proyecto con el siguiente contenido:
-
-```plaintext
-# Ignorar archivos de configuración de control de versiones
-.git
-.gitignore
-
-# Ignorar directorio de dependencias
-node_modules
-
-# Ignorar directorios de salida de compilación
-dist
-
-# Ignorar archivos de configuración del entorno local
-.env
-.env.local
-.env.test
-.env.production
-
-# Ignorar logs
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-
-# Ignorar archivos de configuración de herramientas de desarrollo
-.vscode
-.idea
-
-# Ignorar archivos temporales y del sistema operativo
-.DS_Store
-Thumbs.db
-
-# Ignorar carpetas de pruebas
-test
-
-# Ignorar carpetas de documentación
-docs
-```
-
-### 3. Crear la imagen Docker
-
-Ejecuta el siguiente comando para crear la imagen Docker de la aplicación:
-
-```bash
-docker build -t nombre-imagen:latest .
-```
-
-### 4. Probar la imagen Docker localmente
-
-Para probar la imagen Docker localmente, ejecuta el siguiente comando:
-
-```bash
-docker run --env-file .env -p 3000:3000 nombre-imagen:latest
-```
-
-Accede a `http://localhost:3000` para asegurarte de que la aplicación esté funcionando correctamente.
-
-### 5. Crear los archivos YAML para Kubernetes
-
-Crea los siguientes archivos YAML en el directorio de despliegue (`k8s/`):
-
-**deployment.yaml**
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nombre-deployment
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: nombre-app
-  template:
-    metadata:
-      labels:
-        app: nombre-app
-    spec:
-      containers:
-        - name: nombre-app
-          image: nombre-imagen:latest
-          ports:
-            - containerPort: 3000
-          env:
-            - name: PORT
-              value: "3000"
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: DB_HOST
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: DB_PORT
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: DB_USERNAME
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: DB_PASSWORD
-            - name: DB_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: DB_DATABASE
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: JWT_SECRET
-            - name: JWT_EXPIRATION_TIME
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: JWT_EXPIRATION_TIME
-            - name: MAIL_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: MAIL_HOST
-            - name: MAIL_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: MAIL_PORT
-            - name: MAIL_USER
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: MAIL_USER
-            - name: MAIL_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: MAIL_PASS
-            - name: MAIL_FROM
-              valueFrom:
-                secretKeyRef:
-                  name: nombre-secreto
-                  key: MAIL_FROM
-```
-
-**service.yaml**
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nombre-service
-spec:
-  type: LoadBalancer
-  ports:
-    - port: 80
-      targetPort: 3000
-  selector:
-    app: nombre-app
-```
-
-**secret.yaml**
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: nombre-secreto
-type: Opaque
-data:
-  DB_HOST: base64-de-db-host
-  DB_PORT: base64-de-db-port
-  DB_USERNAME: base64-de-db-username
-  DB_PASSWORD: base64-de-db-password
-  DB_DATABASE: base64-de-db-database
-  JWT_SECRET: base64-de-jwt-secret
-  JWT_EXPIRATION_TIME: base64-de-jwt-expiration-time
-  MAIL_HOST: base64-de-mail-host
-  MAIL_PORT: base64-de-mail-port
-  MAIL_USER: base64-de-mail-user
-  MAIL_PASS: base64-de-mail-pass
-  MAIL_FROM: base64-de-mail-from
-```
-
-Para codificar las variables de entorno a base64, puedes usar el siguiente comando en tu terminal:
-
-```bash
-echo -n 'valor' | base64
-```
-
-#### Nota sobre `nombre-secreto`
-
-El nombre `nombre-secreto` en los archivos YAML se refiere al secreto que contiene las variables de entorno necesarias para la aplicación. Asegúrate de reemplazar `nombre-secreto` con un nombre significativo para tu aplicación.
-
-### 6. Desplegar en Kubernetes
-
-Ejecuta los siguientes comandos para aplicar los archivos de configuración en el clúster de Kubernetes:
-
-```bash
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-```
-
-### 7. Verificar el despliegue
-
-Para verificar que los pods y servicios se están ejecutando correctamente, usa los siguientes comandos:
-
-```bash
-kubectl get pods
-kubectl get services
-```
-
-### 8. Despliegue con Docker Compose (opcional)
-
-Si prefieres usar Docker Compose para incluir una base de datos en tu entorno de desarrollo, crea el siguiente archivo `docker-compose.yml`:
-
-**docker-compose.yml**
-
-```yaml
-version: '3'
-services:
-  app:
-    image: nombre-imagen:latest
-    env_file:
-      - .env
-    ports:
-      - "3000:3000"
-    depends_on:
-      - db
-
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: usuario_db
-      POSTGRES_PASSWORD: password_db
-      POSTGRES_DB: nombre_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-Para iniciar los servicios, ejecuta:
-
-```bash
-docker-compose up
-```
-
-Con estos pasos, podrás probar tu imagen Docker localmente, realizar el despliegue en Kubernetes, y utilizar Docker Compose para incluir una base de datos en tu entorno de desarrollo.
