@@ -3,6 +3,14 @@
 ## Descripción
 Este microservicio gestiona la creación, modificación, eliminación, y bloqueo de usuarios, así como la recuperación de contraseñas. Está construido con Node.js, NestJS, y utiliza TypeORM para interactuar con la base de datos.
 
+## Enlaces de Despliegue
+
+La aplicación está desplegada en los siguientes enlaces:
+
+- **Google Kubernetes Engine (GKE)**: [http://34.46.95.132](http://34.46.95.132) (Este enlace estará disponible mientras dure la prueba gratuita de Google Cloud)
+- **Render**: [https://micro-users-wj9l.onrender.com](https://micro-users-wj9l.onrender.com)
+
+
 ## Dependencias
 
 Las principales dependencias utilizadas en este proyecto son:
