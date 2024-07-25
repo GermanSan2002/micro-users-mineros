@@ -25,6 +25,9 @@ jobs:
     - name: Build Docker images with docker-compose
       run: docker-compose build
 
+    - name: List Docker images
+      run: docker images
+
     - name: Tag Docker images
       run: |
         docker tag micro-users-app gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
@@ -36,7 +39,7 @@ jobs:
         docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/mysql:v1
 
     - name: Set up Kubeconfig
-      run: gcloud container clusters get-credentials cluster-name --zone us-central1
+      run: gcloud container clusters get-credentials cluster-micro --zone us-central1
 
     - name: Deploy to GKE
       run: |
@@ -44,3 +47,9 @@ jobs:
         kubectl apply -f k8s/mysql.yaml
         kubectl apply -f k8s/deployment.yaml
         kubectl apply -f k8s/service.yaml
+
+    - name: Get service URL
+      run: |
+        SERVICE_IP=$(kubectl get svc micro-users -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        echo "Application is running at http://$SERVICE_IP"
+
