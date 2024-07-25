@@ -4,14 +4,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './modules/user/user.module';
-import { UserService } from './services/user/user.service';
-import { UserController } from './controllers/user/user.controller';
-import { AuthService } from './services/auth/auth.service';
+import { UserController } from './modules/user/user.controller';
 import { AuthModule } from './modules/auth/auth.module';
-import { User } from './entities/User';
-import { Operation } from './entities/Operation';
+import { User } from './modules/user/entities/User';
+import { Operation } from './modules/user/entities/Operation';
 import { DataSourceConfig } from './database/data.source';
 import { MailModule } from './modules/mail/mail.module';
+import { AuthService } from './modules/auth/auth.service';
+import { UserService } from './modules/user/user.service';
 
 @Module({
   imports: [

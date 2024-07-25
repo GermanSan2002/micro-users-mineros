@@ -1,6 +1,6 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Operation } from 'src/entities/Operation';
-import { User } from 'src/entities/User';
+import { Operation } from 'src/modules/user/entities/Operation';
+import { User } from 'src/modules/user/entities/User';
 import { DataSource, DataSourceOptions } from 'typeorm';
 
 ConfigModule.forRoot({

@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
-import { UserService } from '../../services/user/user.service';
-import { CredentialsDTO } from '../../dto/credentialsDTO';
-import { UserDTO } from '../../dto/userDTO';
+import { CredentialsDTO } from './dto/credentialsDTO';
+import { UserDTO } from './dto/userDTO';
 import { Response } from 'express';
 import { getMockRes } from '@jest-mock/express';
+import { UserService } from './user.service';
 
 describe('UserController', () => {
   let controller: UserController;

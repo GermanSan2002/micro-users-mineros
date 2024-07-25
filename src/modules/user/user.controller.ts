@@ -9,9 +9,8 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { CredentialsDTO } from '../../dto/credentialsDTO';
-import { UserDTO } from '../../dto/userDTO';
-import { UserService } from '../../services/user/user.service';
+import { CredentialsDTO } from './dto/credentialsDTO';
+import { UserDTO } from './dto/userDTO';
 import {
   ApiTags,
   ApiOperation,
@@ -19,6 +18,7 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
+import { UserService } from './user.service';
 
 @ApiTags('users')
 @Controller('users')

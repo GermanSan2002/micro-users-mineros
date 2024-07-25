@@ -4,10 +4,10 @@ import { UserService } from './user.service';
 import { AuthService } from '../auth/auth.service';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { CredentialsDTO } from '../../dto/credentialsDTO';
-import { Operation } from '../../entities/Operation';
-import { User } from '../../entities/User';
-import { UserDTO } from '../../dto/userDTO';
+import { CredentialsDTO } from './dto/credentialsDTO';
+import { Operation } from './entities/Operation';
+import { User } from './entities/User';
+import { UserDTO } from './dto/userDTO';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
 
