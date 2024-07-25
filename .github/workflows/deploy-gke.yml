@@ -63,8 +63,7 @@ jobs:
 
     - name: Install gke-gcloud-auth-plugin
       run: |
-        sudo apt-get update
-        sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
+        gcloud components install gke-gcloud-auth-plugin
 
     - name: Set up Kubeconfig
       run: gcloud container clusters get-credentials cluster-micro --zone us-central1
@@ -80,4 +79,3 @@ jobs:
       run: |
         SERVICE_IP=$(kubectl get svc micro-users -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         echo "Application is running at http://$SERVICE_IP"
-
