@@ -1,0 +1,8 @@
+FROM mysql:latest
+
+# Establece las variables de entorno
+ENV MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+ENV MYSQL_DATABASE=${DB_DATABASE}
+
+# Exponer el puerto de MySQL
+EXPOSE 3306

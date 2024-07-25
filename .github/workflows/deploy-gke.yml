@@ -38,17 +38,19 @@ jobs:
         echo "MAIL_FROM=${{ secrets.MAIL_FROM }}" >> $GITHUB_ENV
         echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> $GITHUB_ENV
 
-    - name: Build Docker images with docker-compose
-      run: docker-compose build
+    - name: Build Docker images
+      run: |
+        docker build -t micro-users-app:latest .
+        docker build -t mysql:latest -f Dockerfile.mysql .
 
     - name: List Docker images
       run: docker images
 
     - name: Tag Docker images
       run: |
-        docker tag ***_app:latest gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
+        docker tag micro-users-app:latest gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
         docker tag mysql:latest gcr.io/${{ secrets.GCP_PROJECT_ID }}/mysql:v1
-        
+
     - name: Push Docker images to GCR
       run: |
         docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
