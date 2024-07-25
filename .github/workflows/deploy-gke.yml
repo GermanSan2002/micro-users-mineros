@@ -30,9 +30,9 @@ jobs:
 
     - name: Tag Docker images
       run: |
-        docker tag micro-users-app gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
-        docker tag mysql gcr.io/${{ secrets.GCP_PROJECT_ID }}/mysql:v1
-
+        docker tag micro-users-app:latest gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
+        docker tag mysql:latest gcr.io/${{ secrets.GCP_PROJECT_ID }}/mysql:v1
+        
     - name: Push Docker images to GCR
       run: |
         docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
