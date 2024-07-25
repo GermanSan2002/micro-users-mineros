@@ -28,6 +28,7 @@ Estas dependencias están especificadas en el archivo `package.json` y pueden se
 - [Uso de Swagger](#uso-de-swagger)
 - [Despliegue](#despliegue)
 - [Despliegue con Kubernetes en Google Cloud](#despliegue-con-kubernetes-en-google-cloud)
+- [Despliegue en Render](#despliegue-en-render)
 - [Despliegue con Kubernetes en AWS](#despliegue-con-kubernetes-en-aws)
 - [Contribución](#contribución)
 - [Licencia](#licencia)
@@ -267,42 +268,72 @@ El proyecto sigue una estructura estándar de NestJS, con los siguientes directo
 ```plaintext
 project-root/
 │
-├── dist/ # Directorio de salida para archivos compilados
-├── node_modules/ # Dependencias instaladas por npm
-├── src/ # Código fuente del proyecto
-│ ├── app.controller.ts # Controlador principal
-│ ├── app.module.ts # Módulo raíz de la aplicación
-│ ├── app.service.ts # Servicio principal
-│ ├── main.ts # Punto de entrada de la aplicación
-│ ├── ...
-│ ├── users/ # Módulo de usuarios
-│ │ ├── dto/ # Objetos de transferencia de datos (DTOs)
-│ │ ├── entities/ # Entidades de la base de datos
-│ │ ├── services/ # Servicios relacionados con los usuarios
-│ │ ├── controllers/ # Controladores de gestión de usuarios
-│ │ ├── users.module.ts # Módulo de gestión de usuarios
-│ │ └── ...
-│ └── ...
-├── test/ # Configuraciones y archivos de pruebas
-│ ├── jest-e2e.json # Configuración de pruebas end-to-end con Jest
-│ └── ...
-├── .gitignore # Archivos y directorios ignorados por Git
-├── package.json # Archivo de configuración de npm
-├── tsconfig.json # Configuración del compilador TypeScript
-└── README.md # Documentación del proyecto
+├── dist/                # Directorio de salida para archivos compilados
+├── k8s/                 # Directorio para archivos de Kubernetes
+│   ├── deployment.yaml  # Despliegue de la aplicación
+│   ├── mysql.yaml       # Configuración de MySQL
+│   ├── secrets.yaml     # Secretos del entorno
+│   └── service.yaml     # Servicio de Kubernetes
+├── node_modules/        # Dependencias instaladas por npm
+├── src/                 # Código fuente del proyecto
+│   ├── app.controller.ts # Controlador principal
+│   ├── app.module.ts    # Módulo raíz de la aplicación
+│   ├── app.service.ts   # Servicio principal
+│   ├── main.ts          # Punto de entrada de la aplicación
+│   ├── modules/         # Módulos del proyecto
+│   │   ├── users/       # Módulo de gestión de usuarios
+│   │   │   ├── dto/     # Objetos de transferencia de datos (DTOs)
+│   │   │   ├── entities/# Entidades de la base de datos
+│   │   │   ├── users.controller.ts # Controlador relacionado con los usuarios
+│   │   │   ├── users.module.ts     # Módulo de gestión de usuarios
+│   │   │   └── users.service.ts    # Servicios relacionados con los usuarios
+│   │   ├── auth/        # Módulo de autenticación
+│   │   │   ├── auth.module.ts      # Módulo de autenticación
+│   │   │   └── auth.service.ts     # Servicios relacionados con la autenticación
+│   │   ├── mail/        # Módulo de gestión de correo electrónico
+│   │       ├── mail.module.ts      # Módulo de correo electrónico
+│   │       └── mail.service.ts     # Servicios relacionados con el correo electrónico
+├── test/                # Configuraciones y archivos de pruebas
+│   ├── jest-e2e.json    # Configuración de pruebas end-to-end con Jest
+│   └── ...              # Otros archivos de prueba
+├── .gitignore           # Archivos y directorios ignorados por Git
+├── package.json         # Archivo de configuración de npm
+├── tsconfig.json        # Configuración del compilador TypeScript
+└── README.md            # Documentación del proyecto
 ```
 
 ### Explicación de la Estructura
 
-- **`dist/`**: Directorio donde se generan los archivos compilados cuando ejecutas `npm run build`.
-- **`src/`**: Directorio que contiene todo el código
-
- fuente de la aplicación. Aquí es donde se desarrollan los módulos, controladores, servicios y entidades.
-- **`node_modules/`**: Directorio generado automáticamente por npm, que contiene todas las dependencias instaladas.
-- **`test/`**: Directorio donde se colocan las configuraciones y archivos relacionados con las pruebas.
-- **`package.json`**: Archivo de configuración de npm, donde se definen las dependencias, scripts, y otra configuración del proyecto.
-- **`tsconfig.json`**: Archivo de configuración de TypeScript, donde se especifican las opciones del compilador.
-- **`.gitignore`**: Archivo que define qué archivos y directorios deben ser ignorados por Git.
+- **dist/**: Directorio donde se almacenan los archivos compilados después de construir el proyecto.
+- **k8s/**: Contiene los archivos de configuración necesarios para el despliegue en Kubernetes.
+  - **deployment.yaml**: Configuración del despliegue de la aplicación.
+  - **mysql.yaml**: Configuración de la base de datos MySQL.
+  - **secrets.yaml**: Archivos que contienen secretos y variables sensibles del entorno.
+  - **service.yaml**: Configuración del servicio en Kubernetes.
+- **node_modules/**: Directorio donde se almacenan las dependencias instaladas por npm.
+- **src/**: Contiene el código fuente del proyecto.
+  - **app.controller.ts**: Controlador principal que maneja las rutas y solicitudes de la aplicación.
+  - **app.module.ts**: Módulo raíz de la aplicación.
+  - **app.service.ts**: Servicio principal que contiene la lógica de negocio de la aplicación.
+  - **main.ts**: Punto de entrada de la aplicación donde se configura y arranca la aplicación.
+  - **modules/**: Directorio que contiene los diferentes módulos del proyecto.
+    - **users/**: Módulo de gestión de usuarios.
+      - **dto/**: Directorio para Objetos de Transferencia de Datos (DTOs).
+      - **entities/**: Directorio para las entidades de la base de datos.
+      - **users.controller.ts**: Controlador que maneja las rutas y solicitudes relacionadas con los usuarios.
+      - **users.module.ts**: Módulo que agrupa todos los componentes relacionados con la gestión de usuarios.
+      - **users.service.ts**: Servicios que contienen la lógica de negocio relacionada con los usuarios.
+    - **auth/**: Módulo de autenticación.
+      - **auth.module.ts**: Módulo que agrupa todos los componentes relacionados con la autenticación.
+      - **auth.service.ts**: Servicios que contienen la lógica de negocio relacionada con la autenticación.
+    - **mail/**: Módulo de gestión de correo electrónico.
+      - **mail.module.ts**: Módulo que agrupa todos los componentes relacionados con el correo electrónico.
+      - **mail.service.ts**: Servicios que contienen la lógica de negocio relacionada con el correo electrónico.
+- **test/**: Contiene los archivos de configuración y pruebas.
+  - **jest-e2e.json**: Configuración de pruebas end-to-end con Jest.
+- **.gitignore**: Archivos y directorios que Git debe ignorar.
+- **package.json**: Archivo de configuración de npm que incluye información sobre el proyecto y sus dependencias.
+- **tsconfig.json**: Archivo de configuración del compilador TypeScript.
 - **`README.md`**: Archivo de documentación del proyecto, que estás leyendo actualmente.
 
 ## Variables de Entorno
@@ -681,6 +712,10 @@ El proyecto también está configurado para ser desplegado utilizando Docker y K
 ---
 
 Este es un ejemplo de cómo podrías estructurar la sección de despliegue en Kubernetes en tu archivo `README.md`. Ajusta los detalles específicos según tu proyecto y configuración.
+
+## Despliegue en Render
+
+También se ha realizado el despliegue en Render con una base de datos de Clever Cloud debido a que se usó la prueba gratuita de GCloud, la cual hará que el servicio deje de estar disponible cuando se acabe la prueba. En Render, el servicio y la base de datos seguirán siendo accesibles una vez que finalice la prueba de GCloud. La aplicación está ejecutándose en https://micro-users-wj9l.onrender.com.
 
 ## Despliegue con Kubernetes en AWS
 
