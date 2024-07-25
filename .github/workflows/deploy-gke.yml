@@ -1,0 +1,46 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_KEY_FILE }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Authenticate Docker to GCR
+      run: gcloud auth configure-docker
+
+    - name: Build Docker images with docker-compose
+      run: docker-compose build
+
+    - name: Tag Docker images
+      run: |
+        docker tag micro-users-app gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
+        docker tag mysql gcr.io/${{ secrets.GCP_PROJECT_ID }}/mysql:v1
+
+    - name: Push Docker images to GCR
+      run: |
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/micro-users-app:v1
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/mysql:v1
+
+    - name: Set up Kubeconfig
+      run: gcloud container clusters get-credentials cluster-name --zone us-central1
+
+    - name: Deploy to GKE
+      run: |
+        kubectl apply -f k8s/secrets.yaml
+        kubectl apply -f k8s/mysql.yaml
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
