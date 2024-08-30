@@ -39,33 +39,48 @@ describe('UserController', () => {
   });
 
   describe('login', () => {
-    it('should return a token if credentials are valid', async () => {
+    it('should return access and refresh tokens if credentials are valid', async () => {
       const credentialsDTO: CredentialsDTO = {
         email: 'test@test.com',
         password: 'password',
       };
-      const token = 'valid_token';
-      (userService.loginUsuario as jest.Mock).mockResolvedValue(token);
-
+      const accessToken = 'valid_access_token';
+      const refreshToken = 'valid_refresh_token';
+  
+      (userService.loginUsuario as jest.Mock).mockResolvedValue({ accessToken, refreshToken });
+  
       await controller.login(credentialsDTO, res);
-
+  
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ token });
+      expect(res.json).toHaveBeenCalledWith({ accessToken, refreshToken });
     });
-
+  
     it('should return a 400 error if an error occurs', async () => {
       const credentialsDTO: CredentialsDTO = {
         email: 'test@test.com',
         password: 'password',
       };
-      (userService.loginUsuario as jest.Mock).mockRejectedValue(
-        new Error('Invalid credentials'),
-      );
-
+  
+      (userService.loginUsuario as jest.Mock).mockRejectedValue(new Error('Invalid credentials'));
+  
       await controller.login(credentialsDTO, res);
-
+  
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ message: 'Invalid credentials' });
+    });
+  
+    it('should return a 400 error with a default message if an unknown error occurs', async () => {
+      const credentialsDTO: CredentialsDTO = {
+        email: 'test@test.com',
+        password: 'password',
+      };
+  
+      (userService.loginUsuario as jest.Mock).mockRejectedValue({});
+  
+      await controller.login(credentialsDTO, res);
+  
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Unknown error occurred' });
     });
   });
 

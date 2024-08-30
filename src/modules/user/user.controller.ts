@@ -31,8 +31,8 @@ export class UserController {
   @ApiResponse({ status: 400, description: 'Invalid credentials' })
   async login(@Body() credentialsDTO: CredentialsDTO, @Res() res: Response) {
     try {
-      const token = await this.userService.loginUsuario(credentialsDTO);
-      res.status(200).json({ token });
+      const { accessToken, refreshToken } = await this.userService.loginUsuario(credentialsDTO);
+      res.status(200).json({ accessToken, refreshToken });
     } catch (error: unknown) {
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
