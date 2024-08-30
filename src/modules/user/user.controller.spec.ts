@@ -97,6 +97,7 @@ describe('UserController', () => {
         email: 'test@test.com',
         estado: 'active',
         fechaCreacion: fecha,
+        roles: [],
         fechaModificacion: fecha,
       };
       (userService.crearUsuario as jest.Mock).mockResolvedValue(userDTO);
@@ -133,6 +134,7 @@ describe('UserController', () => {
         email: 'test@test.com',
         estado: 'active',
         fechaCreacion: fecha,
+        roles: [],
         fechaModificacion: fecha,
       };
       const updatedUserDTO: UserDTO = {
@@ -141,6 +143,7 @@ describe('UserController', () => {
         email: 'test2@test.com',
         estado: 'inactive',
         fechaCreacion: fecha,
+        roles: [],
         fechaModificacion: new Date(),
       };
       (userService.modificarUsuario as jest.Mock).mockResolvedValue(
@@ -161,6 +164,7 @@ describe('UserController', () => {
         nombre: 'John Doe',
         email: 'test@test.com',
         estado: 'active',
+        roles: [],
         fechaCreacion: new Date(),
         fechaModificacion: new Date(),
       };
@@ -186,6 +190,7 @@ describe('UserController', () => {
         nombre: 'John Doe',
         email: 'test@test.com',
         estado: 'blocked',
+        roles: [],
         fechaCreacion: fecha,
         fechaModificacion: new Date(),
       };

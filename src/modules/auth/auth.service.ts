@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
+import { User } from '../user/entities/User';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 dotenv.config();
 
@@ -18,6 +21,11 @@ if (!refreshTokenSecret) {
 
 @Injectable()
 export class AuthService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, saltRounds);
   }
@@ -36,12 +44,13 @@ export class AuthService {
     return jwt.sign({ userId }, jwtSecret, { expiresIn: '1h' });
   }
 
-  generateAccessToken(userId: string): string {
+  generateAccessToken(userId: string, roles: string[]): string {
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined');
     }
-    return jwt.sign({ userId }, jwtSecret, { expiresIn: '1h' });
+    return jwt.sign({ userId, roles }, jwtSecret, { expiresIn: '1h' });
   }
+
 
   generateRefreshToken(userId: string): string {
     if (!refreshTokenSecret) {
@@ -64,8 +73,21 @@ export class AuthService {
 
   async refreshAccessToken(refreshToken: string): Promise<string> {
     try {
-      const decoded = jwt.verify(refreshToken, refreshTokenSecret) as { userId: string };
-      return this.generateAccessToken(decoded.userId);
+      const decoded = jwt.verify(refreshToken, refreshTokenSecret) as { userId: string};
+      
+      const user = await this.userRepository.findOne({
+        where: {
+          id: decoded.userId,
+        },
+      });
+
+      if (!user) {
+        throw new Error('USER is not found');
+      }
+      
+      const roles = user ? user.roles : [];
+
+      return this.generateAccessToken(decoded.userId, roles); // Asegúrate de incluir los roles
     } catch (error) {
       throw new Error('Invalid or expired refresh token');
     }

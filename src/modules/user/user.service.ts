@@ -37,7 +37,7 @@ export class UserService {
       throw new NotFoundException('Invalid email or password');
     }
 
-    const accessToken = this.authService.generateAccessToken(user.id);
+    const accessToken = this.authService.generateAccessToken(user.id, user.roles);
     const refreshToken = this.authService.generateRefreshToken(user.id);
 
     return { accessToken, refreshToken };
@@ -67,6 +67,7 @@ export class UserService {
     user.email = email;
     user.password = hashedPassword;
     user.estado = 'active';
+    user.roles = [];
     console.log(JSON.stringify(user, null, 2));
     const savedUser = await this.userRepository.save(user);
     return new UserDTO(
@@ -82,9 +83,9 @@ export class UserService {
   async modificarUsuario(id: string, userDTO: UserDTO): Promise<UserDTO> {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) throw new NotFoundException('User not found');
-    user.nombre = userDTO.nombre;
-    user.email = userDTO.email;
-    user.estado = userDTO.estado;
+    user.nombre = userDTO.nombre || user.nombre;
+    user.email = userDTO.email || user.email;
+    user.estado = userDTO.estado || user.estado;
     user.fechaModificacion = new Date();
     await this.userRepository.save(user);
     return new UserDTO(
