@@ -32,6 +32,13 @@ export class UserDTO {
   fechaCreacion: Date;
 
   @ApiProperty({
+    example: ['user', 'admin'],
+    description: 'The roles assigned to the user',
+    isArray: true,
+  })
+  roles: string[];
+
+  @ApiProperty({
     example: '2023-07-10T15:30:00Z',
     description: 'The last modification date of the user record',
   })

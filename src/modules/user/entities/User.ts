@@ -17,6 +17,9 @@ export class User {
   @Column()
   estado: string;
 
+  @Column('simple-array') // Usamos 'simple-array' para almacenar roles como un array de strings
+  roles: string[];
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fechaCreacion: Date;
 
