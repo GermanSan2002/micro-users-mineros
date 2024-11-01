@@ -4,10 +4,10 @@ import { UserService } from './user.service';
 import { AuthService } from '../auth/auth.service';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { CredentialsDTO } from '../../dto/credentialsDTO';
-import { Operation } from '../../entities/Operation';
-import { User } from '../../entities/User';
-import { UserDTO } from '../../dto/userDTO';
+import { CredentialsDTO } from './dto/credentialsDTO';
+import { Operation } from './entities/Operation';
+import { User } from './entities/User';
+import { UserDTO } from './dto/userDTO';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
 
@@ -35,6 +35,8 @@ describe('UserService', () => {
           useValue: {
             comparePassword: jest.fn(),
             generateToken: jest.fn(),
+            generateAccessToken: jest.fn(),
+            generateRefreshToken: jest.fn(),
             hashPassword: jest.fn(),
           },
         },
@@ -90,7 +92,7 @@ describe('UserService', () => {
       );
     });
 
-    it('should return a token if credentials are valid', async () => {
+    it('should return tokens if credentials are valid', async () => {
       const user = new User();
       user.id = '1';
       user.email = 'test@test.com';
@@ -98,12 +100,16 @@ describe('UserService', () => {
 
       jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
       jest.spyOn(authService, 'comparePassword').mockResolvedValue(true);
-      jest.spyOn(authService, 'generateToken').mockReturnValue('token');
+      jest.spyOn(authService, 'generateAccessToken').mockReturnValue('access_token');
+      jest.spyOn(authService, 'generateRefreshToken').mockReturnValue('refresh_token');
 
       const credentialsDTO = new CredentialsDTO('test@test.com', 'password');
-      const token = await service.loginUsuario(credentialsDTO);
+      const tokens = await service.loginUsuario(credentialsDTO);
 
-      expect(token).toBe('token');
+      expect(tokens).toEqual({
+        accessToken: 'access_token',
+        refreshToken: 'refresh_token',
+      });
     });
   });
 

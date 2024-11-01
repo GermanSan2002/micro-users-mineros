@@ -2,13 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthService } from '../auth/auth.service';
-import { CredentialsDTO } from '../../dto/credentialsDTO';
-import { UserDTO } from '../../dto/userDTO';
-import { Operation } from '../../entities/Operation';
-import { User } from '../../entities/User';
-import { MailService } from '../mail/mail.service';
+import { CredentialsDTO } from './dto/credentialsDTO';
+import { UserDTO } from './dto/userDTO';
+import { Operation } from './entities/Operation';
+import { User } from './entities/User';
 import { ConfigService } from '@nestjs/config';
 import { ErrorManager } from '../../utils/error.manager';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class UserService {
@@ -22,7 +22,7 @@ export class UserService {
     private readonly configService: ConfigService,
   ) {}
 
-  async loginUsuario(credentialsDTO: CredentialsDTO): Promise<string> {
+  async loginUsuario(credentialsDTO: CredentialsDTO): Promise<{ accessToken: string, refreshToken: string }> {
     const { email, password } = credentialsDTO;
     const user = await this.userRepository.findOneBy({ email });
     if (!user) {
@@ -37,8 +37,10 @@ export class UserService {
       throw new NotFoundException('Invalid email or password');
     }
 
-    const token = this.authService.generateToken(user.id);
-    return token;
+    const accessToken = this.authService.generateAccessToken(user.id, user.roles);
+    const refreshToken = this.authService.generateRefreshToken(user.id);
+
+    return { accessToken, refreshToken };
   }
 
   async crearUsuario(credentialsDTO: CredentialsDTO): Promise<UserDTO> {
@@ -65,6 +67,7 @@ export class UserService {
     user.email = email;
     user.password = hashedPassword;
     user.estado = 'active';
+    user.roles = [];
     console.log(JSON.stringify(user, null, 2));
     const savedUser = await this.userRepository.save(user);
     return new UserDTO(
@@ -80,9 +83,9 @@ export class UserService {
   async modificarUsuario(id: string, userDTO: UserDTO): Promise<UserDTO> {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) throw new NotFoundException('User not found');
-    user.nombre = userDTO.nombre;
-    user.email = userDTO.email;
-    user.estado = userDTO.estado;
+    user.nombre = userDTO.nombre || user.nombre;
+    user.email = userDTO.email || user.email;
+    user.estado = userDTO.estado || user.estado;
     user.fechaModificacion = new Date();
     await this.userRepository.save(user);
     return new UserDTO(
