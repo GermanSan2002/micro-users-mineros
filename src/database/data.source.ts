@@ -1,4 +1,5 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Role } from 'src/modules/roles/entities/Role';
 import { Operation } from 'src/modules/user/entities/Operation';
 import { User } from 'src/modules/user/entities/User';
 import { DataSource, DataSourceOptions } from 'typeorm';
@@ -16,7 +17,7 @@ export const DataSourceConfig: DataSourceOptions = {
   username: configService.get<string>('DB_USERNAME'),
   password: configService.get<string>('DB_PASSWORD'),
   database: configService.get<string>('DB_DATABASE'),
-  entities: [User, Operation],
+  entities: [User, Operation, Role],
   synchronize: true,
 };
 

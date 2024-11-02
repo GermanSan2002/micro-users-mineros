@@ -12,6 +12,9 @@ import { DataSourceConfig } from './database/data.source';
 import { MailModule } from './modules/mail/mail.module';
 import { AuthService } from './modules/auth/auth.service';
 import { UserService } from './modules/user/user.service';
+import { TokenModule } from './modules/token/token.module';
+import { Role } from './modules/roles/entities/Role';
+import { RoleModule } from './modules/roles/roles.module';
 
 @Module({
   imports: [
@@ -20,10 +23,11 @@ import { UserService } from './modules/user/user.service';
       envFilePath: '.env', // Especifica la ruta al archivo .env
     }),
     TypeOrmModule.forRoot({ ...DataSourceConfig }),
-    TypeOrmModule.forFeature([User, Operation]),
+    TypeOrmModule.forFeature([User, Operation, Role]),
     UserModule,
     AuthModule,
-    MailModule,
+    TokenModule,
+    RoleModule
   ],
   controllers: [AppController, UserController],
   providers: [AppService, UserService, AuthService],

@@ -8,7 +8,8 @@ import { Operation } from './entities/Operation';
 import { User } from './entities/User';
 import { ConfigService } from '@nestjs/config';
 import { ErrorManager } from '../../utils/error.manager';
-import { MailService } from '../mail/mail.service';
+import { RoleDTO } from '../roles/dto/roleDTO';
+import { Role } from '../roles/entities/Role';
 
 @Injectable()
 export class UserService {
@@ -17,39 +18,17 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Operation)
     private readonly operationRepository: Repository<Operation>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
     private readonly authService: AuthService,
-    private readonly mailService: MailService,
     private readonly configService: ConfigService,
   ) {}
 
-  async loginUsuario(credentialsDTO: CredentialsDTO): Promise<{ accessToken: string, refreshToken: string }> {
-    const { email, password } = credentialsDTO;
-    const user = await this.userRepository.findOneBy({ email });
-    if (!user) {
-      throw new NotFoundException('Invalid email or password');
-    }
-
-    const isPasswordValid = await this.authService.comparePassword(
-      password,
-      user.password,
-    );
-    if (!isPasswordValid) {
-      throw new NotFoundException('Invalid email or password');
-    }
-
-    const accessToken = this.authService.generateAccessToken(user.id, user.roles);
-    const refreshToken = this.authService.generateRefreshToken(user.id);
-
-    return { accessToken, refreshToken };
-  }
-
-  async crearUsuario(credentialsDTO: CredentialsDTO): Promise<UserDTO> {
+  async createUser(credentialsDTO: CredentialsDTO): Promise<UserDTO> {
     const { email, password } = credentialsDTO;
 
     const findUsuario = await this.userRepository.findOne({
-      where: {
-        email: email,
-      },
+      where: { email },
     });
 
     if (findUsuario) {
@@ -61,15 +40,13 @@ export class UserService {
 
     const hashedPassword = await this.authService.hashPassword(password);
     const user = new User();
-    console.log(hashedPassword);
-    console.log(email);
     user.nombre = 'defaultName';
     user.email = email;
     user.password = hashedPassword;
     user.estado = 'active';
-    user.roles = [];
-    console.log(JSON.stringify(user, null, 2));
+    user.roles = []; // Iniciamos con una lista vacía de roles
     const savedUser = await this.userRepository.save(user);
+
     return new UserDTO(
       savedUser.id,
       savedUser.nombre,
@@ -77,16 +54,28 @@ export class UserService {
       savedUser.estado,
       savedUser.fechaCreacion,
       savedUser.fechaModificacion,
+      savedUser.roles.map(role => new RoleDTO(role.id, role.role)), // Convertimos los roles a RoleDTO
     );
   }
 
-  async modificarUsuario(id: string, userDTO: UserDTO): Promise<UserDTO> {
-    const user = await this.userRepository.findOneBy({ id });
+  async updateUser(id: string, userDTO: UserDTO): Promise<UserDTO> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['roles'], // Incluimos roles en la consulta
+    });
     if (!user) throw new NotFoundException('User not found');
+
     user.nombre = userDTO.nombre || user.nombre;
     user.email = userDTO.email || user.email;
     user.estado = userDTO.estado || user.estado;
     user.fechaModificacion = new Date();
+
+    // Actualización de roles (si están incluidos en userDTO)
+    if (userDTO.roles) {
+      const roles = await this.roleRepository.findByIds(userDTO.roles.map(role => role.id));
+      user.roles = roles;
+    }
+
     await this.userRepository.save(user);
     return new UserDTO(
       user.id,
@@ -95,19 +84,26 @@ export class UserService {
       user.estado,
       user.fechaCreacion,
       user.fechaModificacion,
+      user.roles.map(role => new RoleDTO(role.id, role.role)), // Convertimos los roles a RoleDTO
     );
   }
 
-  async eliminarUsuario(id: string): Promise<void> {
+
+  async deleteUser(id: string): Promise<void> {
     await this.userRepository.delete({ id });
   }
 
-  async bloquearUsuario(id: string, motivo: string): Promise<UserDTO> {
-    const user = await this.userRepository.findOneBy({ id });
+  async blockUser(id: string, motivo: string): Promise<UserDTO> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['roles'], // Incluimos roles en la consulta
+    });
     if (!user) throw new NotFoundException('User not found');
+
     user.estado = 'blocked';
     user.fechaModificacion = new Date();
     await this.userRepository.save(user);
+
     const operation = this.operationRepository.create({
       usuario: user,
       tipo: 'block',
@@ -115,6 +111,7 @@ export class UserService {
       fecha: new Date(),
     });
     await this.operationRepository.save(operation);
+
     return new UserDTO(
       user.id,
       user.nombre,
@@ -122,10 +119,12 @@ export class UserService {
       user.estado,
       user.fechaCreacion,
       user.fechaModificacion,
+      user.roles.map(role => new RoleDTO(role.id, role.role)), // Convertimos los roles a RoleDTO
     );
   }
 
   async recuperarContraseña(email: string): Promise<void> {
+    /*
     const user = await this.userRepository.findOneBy({ email });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -139,5 +138,6 @@ export class UserService {
     const html = `<p>To reset your password, please click the following link: <a href="${resetPasswordUrl}">${resetPasswordUrl}</a></p>`;
 
     await this.mailService.sendMail(email, subject, text, html);
+    */
   }
 }

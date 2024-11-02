@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Role } from 'src/modules/roles/entities/Role';
+import { Entity, PrimaryGeneratedColumn, Column, JoinTable, ManyToMany } from 'typeorm';
 
 @Entity()
 export class User {
@@ -17,8 +18,9 @@ export class User {
   @Column()
   estado: string;
 
-  @Column('simple-array') // Usamos 'simple-array' para almacenar roles como un array de strings
-  roles: string[];
+  @ManyToMany(() => Role, { cascade: true }) // Definimos la relación ManyToMany con Role
+  @JoinTable() // Necesario para la tabla de unión en relaciones ManyToMany
+  roles: Role[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fechaCreacion: Date;

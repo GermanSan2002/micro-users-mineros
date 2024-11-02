@@ -25,34 +25,17 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post('login')
-  @ApiBody({ type: CredentialsDTO })
-  @ApiResponse({ status: 200, description: 'Login successful, token returned' })
-  @ApiResponse({ status: 400, description: 'Invalid credentials' })
-  async login(@Body() credentialsDTO: CredentialsDTO, @Res() res: Response) {
-    try {
-      const { accessToken, refreshToken } = await this.userService.loginUsuario(credentialsDTO);
-      res.status(200).json({ accessToken, refreshToken });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(400).json({ message: 'Unknown error occurred' });
-      }
-    }
-  }
-
   @Post()
   @ApiOperation({ summary: 'Create a new user' })
   @ApiBody({ type: CredentialsDTO })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async crearUsuario(
+  async createAccount(
     @Body() credentialsDTO: CredentialsDTO,
     @Res() res: Response,
   ) {
     try {
-      const userDTO = await this.userService.crearUsuario(credentialsDTO);
+      const userDTO = await this.userService.createUser(credentialsDTO);
       res.status(201).json(userDTO);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -69,13 +52,13 @@ export class UserController {
   @ApiBody({ type: UserDTO })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async modificarUsuario(
+  async updateAccount(
     @Param('id') id: string,
     @Body() userDTO: UserDTO,
     @Res() res: Response,
   ) {
     try {
-      const updatedUser = await this.userService.modificarUsuario(id, userDTO);
+      const updatedUser = await this.userService.updateUser(id, userDTO);
       res.status(200).json(updatedUser);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -91,9 +74,9 @@ export class UserController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async eliminarUsuario(@Param('id') id: string, @Res() res: Response) {
+  async deleteAccount(@Param('id') id: string, @Res() res: Response) {
     try {
-      await this.userService.eliminarUsuario(id);
+      await this.userService.deleteUser(id);
       res.status(204).send();
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -110,13 +93,13 @@ export class UserController {
   @ApiBody({ schema: { example: { motivo: 'Reason for blocking' } } })
   @ApiResponse({ status: 200, description: 'User blocked successfully' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async bloquearUsuario(
+  async blockAccount(
     @Param('id') id: string,
     @Body('motivo') motivo: string,
     @Res() res: Response,
   ) {
     try {
-      const userDTO = await this.userService.bloquearUsuario(id, motivo);
+      const userDTO = await this.userService.blockUser(id, motivo);
       res.status(200).json(userDTO);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -132,13 +115,43 @@ export class UserController {
   @ApiBody({ schema: { example: { email: 'user@example.com' } } })
   @ApiResponse({ status: 200, description: 'Password recovery email sent' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async recuperarContraseña(
+  async changePassword(
     @Body('email') email: string,
     @Res() res: Response,
   ) {
     try {
       await this.userService.recuperarContraseña(email);
       res.status(200).send({ message: 'Password recovery email sent' });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: 'Unknown error occurred' });
+      }
+    }
+  }
+
+  @Put(':id/verify')
+  @ApiOperation({ summary: 'Verify a user' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async verifyAccount(
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const verify = new UserDTO(
+        id,
+        null,
+        null,
+        "verified",
+        null,
+        null,
+        null, 
+      );
+      const verifiedUser = await this.userService.updateUser(id, verify);
+      res.status(200).json(verifiedUser);
     } catch (error: unknown) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

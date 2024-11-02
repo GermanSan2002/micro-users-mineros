@@ -13,6 +13,8 @@ RUN npm install
 # Copia el resto del código de la aplicación
 COPY . .
 
+RUN apt-get update && apt-get install -y dos2unix && dos2unix wait-for-it.sh
+
 # Compila el proyecto
 RUN npm run build
 

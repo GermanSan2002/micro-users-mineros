@@ -1,4 +1,6 @@
+// src/user/dto/user.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
+import { RoleDTO } from 'src/modules/roles/dto/roleDTO';
 
 export class UserDTO {
   @ApiProperty({
@@ -32,11 +34,11 @@ export class UserDTO {
   fechaCreacion: Date;
 
   @ApiProperty({
-    example: ['user', 'admin'],
+    type: [RoleDTO],
     description: 'The roles assigned to the user',
     isArray: true,
   })
-  roles: string[];
+  roles: RoleDTO[];
 
   @ApiProperty({
     example: '2023-07-10T15:30:00Z',
@@ -51,6 +53,7 @@ export class UserDTO {
     estado: string,
     fechaCreacion: Date,
     fechaModificacion: Date,
+    roles: RoleDTO[],
   ) {
     this.id = id;
     this.nombre = nombre;
@@ -58,5 +61,6 @@ export class UserDTO {
     this.estado = estado;
     this.fechaCreacion = fechaCreacion;
     this.fechaModificacion = fechaModificacion;
+    this.roles = roles;
   }
 }
