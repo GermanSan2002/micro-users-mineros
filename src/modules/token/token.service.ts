@@ -58,22 +58,23 @@ export class TokenService {
     async refreshAccessToken(refreshToken: string): Promise<string> {
         try {
             const decoded = jwt.verify(refreshToken, refreshTokenSecret) as { userId: string };
-
+    
             const user = await this.userRepository.findOne({
                 where: { id: decoded.userId },
-                relations: ['roles'], // Incluimos la relación roles en la consulta
+                relations: ['roles'],
             });
-
+    
             if (!user) {
-                throw new Error('User not found');
+                throw new Error('User not found'); // Cambiado para lanzar un error específico
             }
-
+    
             const roles = user.roles || [];
-            
-            // Generamos un nuevo access token con los nombres de los roles
             return this.generateAccessToken(decoded.userId, roles);
         } catch (error) {
+            if (error.message === 'User not found') {
+                throw error; // Vuelve a lanzar el error específico para que el test lo capture
+            }
             throw new Error('Invalid or expired refresh token');
         }
-    }
+    }    
 }

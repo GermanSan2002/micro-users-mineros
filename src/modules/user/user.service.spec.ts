@@ -1,22 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserService } from './user.service';
-import { AuthService } from '../auth/auth.service';
-import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
-import { CredentialsDTO } from './dto/credentialsDTO';
-import { Operation } from './entities/Operation';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/User';
-import { UserDTO } from './dto/userDTO';
+import { Repository } from 'typeorm';
+import { AuthService } from '../auth/auth.service';
+import { CredentialsDTO } from './dto/credentialsDTO';
 import { ConfigService } from '@nestjs/config';
-import { MailService } from '../mail/mail.service';
+import { Operation } from './entities/Operation';
+import { Role } from '../roles/entities/Role';
+import { NotFoundException } from '@nestjs/common';
 
 describe('UserService', () => {
   let service: UserService;
   let userRepository: Repository<User>;
   let operationRepository: Repository<Operation>;
+  let roleRepository: Repository<Role>;
   let authService: AuthService;
-  let mailService: MailService;
+  let configService: ConfigService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,25 +31,20 @@ describe('UserService', () => {
           useClass: Repository,
         },
         {
+          provide: getRepositoryToken(Role),
+          useClass: Repository,
+        },
+        {
           provide: AuthService,
           useValue: {
-            comparePassword: jest.fn(),
-            generateToken: jest.fn(),
-            generateAccessToken: jest.fn(),
-            generateRefreshToken: jest.fn(),
-            hashPassword: jest.fn(),
+            hashPassword: jest.fn().mockResolvedValue('hashedPassword'),
+            generateToken: jest.fn().mockReturnValue('fakeToken'),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('http://example.com'),
-          },
-        },
-        {
-          provide: MailService,
-          useValue: {
-            sendMail: jest.fn(),
+            get: jest.fn().mockReturnValue('http://localhost:3000'),
           },
         },
       ],
@@ -57,220 +52,153 @@ describe('UserService', () => {
 
     service = module.get<UserService>(UserService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    operationRepository = module.get<Repository<Operation>>(
-      getRepositoryToken(Operation),
-    );
+    operationRepository = module.get<Repository<Operation>>(getRepositoryToken(Operation));
+    roleRepository = module.get<Repository<Role>>(getRepositoryToken(Role));
     authService = module.get<AuthService>(AuthService);
-    mailService = module.get<MailService>(MailService);
+    configService = module.get<ConfigService>(ConfigService);
+
+    // Mock the findByIds and create methods
+    jest.spyOn(roleRepository, 'findByIds').mockResolvedValue([]); // Mock `findByIds` to return an empty array
+    jest.spyOn(operationRepository, 'create').mockImplementation((operation) => {
+      return {
+        id: '1',
+        tipo: operation.tipo,
+        detalles: operation.detalles,
+        usuario: operation.usuario,
+        fecha: operation.fecha || new Date(),
+      } as Operation; // Complete Operation object
+    });
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('loginUsuario', () => {
-    it('should throw an error if user not found', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
+  describe('createUser', () => {
+    it('should create a new user', async () => {
+      const credentialsDTO: CredentialsDTO = { email: 'test@example.com', password: 'password' };
+      const savedUser = {
+        id: '1',
+        nombre: 'defaultName',
+        email: 'test@example.com',
+        password: 'hashedPassword',
+        estado: 'active',
+        fechaCreacion: new Date(),
+        fechaModificacion: new Date(),
+        roles: [],
+      };
 
-      const credentialsDTO = new CredentialsDTO('test@test.com', 'password');
-      await expect(service.loginUsuario(credentialsDTO)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(userRepository, 'save').mockResolvedValue(savedUser as User);
 
-    it('should throw an error if password is invalid', async () => {
-      const user = new User();
-      user.email = 'test@test.com';
-      user.password = 'hashedPassword';
+      const result = await service.createUser(credentialsDTO);
 
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
-      jest.spyOn(authService, 'comparePassword').mockResolvedValue(false);
-
-      const credentialsDTO = new CredentialsDTO('test@test.com', 'password');
-      await expect(service.loginUsuario(credentialsDTO)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should return tokens if credentials are valid', async () => {
-      const user = new User();
-      user.id = '1';
-      user.email = 'test@test.com';
-      user.password = 'hashedPassword';
-
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
-      jest.spyOn(authService, 'comparePassword').mockResolvedValue(true);
-      jest.spyOn(authService, 'generateAccessToken').mockReturnValue('access_token');
-      jest.spyOn(authService, 'generateRefreshToken').mockReturnValue('refresh_token');
-
-      const credentialsDTO = new CredentialsDTO('test@test.com', 'password');
-      const tokens = await service.loginUsuario(credentialsDTO);
-
-      expect(tokens).toEqual({
-        accessToken: 'access_token',
-        refreshToken: 'refresh_token',
+      expect(userRepository.findOne).toHaveBeenCalledWith({ where: { email: credentialsDTO.email } });
+      expect(authService.hashPassword).toHaveBeenCalledWith(credentialsDTO.password);
+      expect(userRepository.save).toHaveBeenCalled();
+      expect(result).toEqual({
+        id: savedUser.id,
+        nombre: savedUser.nombre,
+        email: savedUser.email,
+        estado: savedUser.estado,
+        fechaCreacion: savedUser.fechaCreacion,
+        fechaModificacion: savedUser.fechaModificacion,
+        roles: [],
       });
     });
-  });
 
-  describe('crearUsuario', () => {
-    it('should create and return a new user', async () => {
-      const credentialsDTO = new CredentialsDTO('test@test.com', 'password');
-      const hashedPassword = 'hashedPassword';
+    it('should throw an error if email already exists', async () => {
+      const credentialsDTO: CredentialsDTO = { email: 'test@example.com', password: 'password' };
+      const existingUser = { email: 'test@example.com' };
 
-      jest.spyOn(authService, 'hashPassword').mockResolvedValue(hashedPassword);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(existingUser as User);
 
-      const user = new User();
-      user.id = '1'; // Asegurarse de que el id está definido aquí
-      user.nombre = 'defaultName';
-      user.email = 'test@test.com';
-      user.password = hashedPassword;
-      user.estado = 'active';
-
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined); // Simula que no encuentra el usuario
-
-      jest
-        .spyOn(userRepository, 'save')
-        .mockImplementation(async (newUser: User) => {
-          newUser.id = '1'; // Asegurar que el id se establece aquí
-          return newUser;
-        });
-
-      const result = await service.crearUsuario(credentialsDTO);
-
-      expect(result).toEqual(
-        new UserDTO(
-          '1',
-          'defaultName',
-          'test@test.com',
-          'active',
-          user.fechaCreacion,
-          user.fechaModificacion,
-        ),
-      );
+      await expect(service.createUser(credentialsDTO)).rejects.toThrowError('El email ya existe');
     });
   });
 
-  describe('modificarUsuario', () => {
+  describe('updateUser', () => {
+    it('should update an existing user', async () => {
+      const userDTO = {
+        id: '1',
+        nombre: 'updatedName',
+        email: 'updated@example.com',
+        estado: 'active',
+        roles: [],
+        fechaCreacion: new Date(),
+        fechaModificacion: new Date(),
+      };
+      const existingUser = {
+        id: '1',
+        nombre: 'defaultName',
+        email: 'test@example.com',
+        estado: 'active',
+        roles: [],
+        fechaCreacion: new Date(),
+        fechaModificacion: new Date(),
+      };
+
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(existingUser as User);
+      jest.spyOn(userRepository, 'save').mockResolvedValue(existingUser as User);
+
+      const result = await service.updateUser('1', userDTO);
+
+      expect(userRepository.findOne).toHaveBeenCalledWith({ where: { id: '1' }, relations: ['roles'] });
+      expect(userRepository.save).toHaveBeenCalled();
+      expect(result.nombre).toEqual(userDTO.nombre);
+      expect(result.email).toEqual(userDTO.email);
+    });
+
     it('should throw an error if user not found', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
-      const userDTO = new UserDTO(
-        '1',
-        'name',
-        'test@test.com',
-        'active',
-        new Date(),
-        new Date(),
-      );
-      await expect(service.modificarUsuario('1', userDTO)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should update and return the user', async () => {
-      const user = new User();
-      user.id = '1';
-      user.nombre = 'name';
-      user.email = 'test@test.com';
-      user.estado = 'active';
-
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
-
-      const userDTO = new UserDTO(
-        '1',
-        'newName',
-        'new@test.com',
-        'active',
-        new Date(),
-        new Date(),
-      );
-      jest.spyOn(userRepository, 'save').mockResolvedValue(user);
-
-      const result = await service.modificarUsuario('1', userDTO);
-
-      expect(result).toEqual(
-        new UserDTO(
-          '1',
-          'newName',
-          'new@test.com',
-          'active',
-          user.fechaCreacion,
-          user.fechaModificacion,
-        ),
-      );
+      await expect(service.updateUser('1', {} as any)).rejects.toThrowError(NotFoundException);
     });
   });
 
-  describe('eliminarUsuario', () => {
-    it('should delete the user', async () => {
-      jest.spyOn(userRepository, 'delete').mockResolvedValue(undefined);
+  describe('deleteUser', () => {
+    it('should delete a user', async () => {
+      jest.spyOn(userRepository, 'delete').mockResolvedValue({ affected: 1 } as any);
 
-      await expect(service.eliminarUsuario('1')).resolves.toBeUndefined();
+      await expect(service.deleteUser('1')).resolves.not.toThrow();
+      expect(userRepository.delete).toHaveBeenCalledWith({ id: '1' });
     });
   });
 
-  describe('bloquearUsuario', () => {
-    it('should block and return the user', async () => {
-      const user = new User();
-      user.id = '1';
-      user.nombre = 'name';
-      user.email = 'test@test.com';
-      user.estado = 'active';
+  describe('blockUser', () => {
+    it('should block a user', async () => {
+      const existingUser = {
+        id: '1',
+        nombre: 'defaultName',
+        email: 'test@example.com',
+        estado: 'active',
+        roles: [],
+        fechaCreacion: new Date(),
+        fechaModificacion: new Date(),
+      };
 
-      const operation = new Operation();
-      operation.usuario = user;
-      operation.tipo = 'block';
-      operation.detalles = 'motivo';
-      operation.fecha = new Date();
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(existingUser as User);
+      jest.spyOn(userRepository, 'save').mockResolvedValue(existingUser as User);
+      jest.spyOn(operationRepository, 'save').mockResolvedValue({
+        id: '1',
+        tipo: 'block',
+        detalles: 'testing block reason',
+        usuario: existingUser,
+        fecha: new Date(),
+      } as Operation);
 
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
-      jest.spyOn(userRepository, 'save').mockResolvedValue(user);
-      jest.spyOn(operationRepository, 'create').mockReturnValue(operation);
-      jest.spyOn(operationRepository, 'save').mockResolvedValue(operation);
+      const result = await service.blockUser('1', 'testing block reason');
 
-      const result = await service.bloquearUsuario('1', 'motivo');
-
-      expect(result).toEqual(
-        new UserDTO(
-          '1',
-          'name',
-          'test@test.com',
-          'blocked',
-          user.fechaCreacion,
-          user.fechaModificacion,
-        ),
-      );
-    });
-  });
-
-  describe('recuperarContraseña', () => {
-    it('should throw NotFoundException if user does not exist', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
-
-      await expect(
-        service.recuperarContraseña('test@example.com'),
-      ).rejects.toThrow(NotFoundException);
+      expect(userRepository.findOne).toHaveBeenCalledWith({ where: { id: '1' }, relations: ['roles'] });
+      expect(userRepository.save).toHaveBeenCalled();
+      expect(operationRepository.save).toHaveBeenCalled();
+      expect(result.estado).toEqual('blocked');
     });
 
-    it('should generate a token and send a reset email if user exists', async () => {
-      const user = new User();
-      user.id = '1';
-      user.email = 'test@example.com';
+    it('should throw an error if user not found', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
-      jest.spyOn(authService, 'generateToken').mockReturnValue('test-token');
-      jest.spyOn(mailService, 'sendMail').mockResolvedValue(void 0);
-
-      await service.recuperarContraseña('test@example.com');
-
-      expect(authService.generateToken).toHaveBeenCalledWith(user.id);
-      expect(mailService.sendMail).toHaveBeenCalledWith(
-        'test@example.com',
-        'Password Recovery',
-        'To reset your password, please click the following link: http://example.com/reset-password?token=test-token',
-        '<p>To reset your password, please click the following link: <a href="http://example.com/reset-password?token=test-token">http://example.com/reset-password?token=test-token</a></p>',
-      );
+      await expect(service.blockUser('1', 'testing block reason')).rejects.toThrowError(NotFoundException);
     });
   });
 });

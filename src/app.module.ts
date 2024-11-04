@@ -9,7 +9,6 @@ import { AuthModule } from './modules/auth/auth.module';
 import { User } from './modules/user/entities/User';
 import { Operation } from './modules/user/entities/Operation';
 import { DataSourceConfig } from './database/data.source';
-import { MailModule } from './modules/mail/mail.module';
 import { AuthService } from './modules/auth/auth.service';
 import { UserService } from './modules/user/user.service';
 import { TokenModule } from './modules/token/token.module';

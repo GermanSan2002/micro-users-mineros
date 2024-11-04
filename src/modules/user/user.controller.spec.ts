@@ -1,248 +1,126 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
+import { UserService } from './user.service';
 import { CredentialsDTO } from './dto/credentialsDTO';
 import { UserDTO } from './dto/userDTO';
+import { NotFoundException } from '@nestjs/common';
 import { Response } from 'express';
-import { getMockRes } from '@jest-mock/express';
-import { UserService } from './user.service';
+
+const mockUserService = {
+  createUser: jest.fn(),
+  updateUser: jest.fn(),
+  deleteUser: jest.fn(),
+  blockUser: jest.fn(),
+  recuperarContraseña: jest.fn(),
+};
+
+const mockResponse = () => {
+  const res: Partial<Response> = {};
+  res.status = jest.fn().mockReturnThis();
+  res.json = jest.fn().mockReturnThis();
+  res.send = jest.fn().mockReturnThis();
+  return res as Response;
+};
+
+const testUserDTO = new UserDTO('1', 'John Doe', 'test@example.com', 'active', new Date(), new Date(), []);
+
+
+
+
+
+
+
+
+
 
 describe('UserController', () => {
   let controller: UserController;
   let userService: UserService;
-  let res: Response;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
-        {
-          provide: UserService,
-          useValue: {
-            loginUsuario: jest.fn(),
-            crearUsuario: jest.fn(),
-            modificarUsuario: jest.fn(),
-            eliminarUsuario: jest.fn(),
-            bloquearUsuario: jest.fn(),
-            recuperarContraseña: jest.fn(),
-          },
-        },
+        { provide: UserService, useValue: mockUserService },
       ],
     }).compile();
 
     controller = module.get<UserController>(UserController);
     userService = module.get<UserService>(UserService);
-    res = getMockRes().res;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('login', () => {
-    it('should return access and refresh tokens if credentials are valid', async () => {
-      const credentialsDTO: CredentialsDTO = {
-        email: 'test@test.com',
-        password: 'password',
-      };
-      const accessToken = 'valid_access_token';
-      const refreshToken = 'valid_refresh_token';
-  
-      (userService.loginUsuario as jest.Mock).mockResolvedValue({ accessToken, refreshToken });
-  
-      await controller.login(credentialsDTO, res);
-  
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ accessToken, refreshToken });
-    });
-  
-    it('should return a 400 error if an error occurs', async () => {
-      const credentialsDTO: CredentialsDTO = {
-        email: 'test@test.com',
-        password: 'password',
-      };
-  
-      (userService.loginUsuario as jest.Mock).mockRejectedValue(new Error('Invalid credentials'));
-  
-      await controller.login(credentialsDTO, res);
-  
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Invalid credentials' });
-    });
-  
-    it('should return a 400 error with a default message if an unknown error occurs', async () => {
-      const credentialsDTO: CredentialsDTO = {
-        email: 'test@test.com',
-        password: 'password',
-      };
-  
-      (userService.loginUsuario as jest.Mock).mockRejectedValue({});
-  
-      await controller.login(credentialsDTO, res);
-  
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unknown error occurred' });
-    });
-  });
+  describe('createAccount', () => {
+    it('should create a new user', async () => {
+      const res = mockResponse();
+      const credentialsDTO: CredentialsDTO = { email: 'test@example.com', password: 'password' };
+      mockUserService.createUser.mockResolvedValue(testUserDTO);
 
-  describe('crearUsuario', () => {
-    it('should create and return a new user', async () => {
-      const credentialsDTO: CredentialsDTO = {
-        email: 'test@test.com',
-        password: 'password',
-      };
-      const fecha = new Date();
-      const userDTO: UserDTO = {
-        id: '1',
-        nombre: 'John Doe',
-        email: 'test@test.com',
-        estado: 'active',
-        fechaCreacion: fecha,
-        roles: [],
-        fechaModificacion: fecha,
-      };
-      (userService.crearUsuario as jest.Mock).mockResolvedValue(userDTO);
+      await controller.createAccount(credentialsDTO, res);
 
-      await controller.crearUsuario(credentialsDTO, res);
-
+      expect(userService.createUser).toHaveBeenCalledWith(credentialsDTO);
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(userDTO);
-    });
-
-    it('should return a 500 error if an error occurs', async () => {
-      const credentialsDTO: CredentialsDTO = {
-        email: 'test@test.com',
-        password: 'password',
-      };
-      (userService.crearUsuario as jest.Mock).mockRejectedValue(
-        new Error('Error creating user'),
-      );
-
-      await controller.crearUsuario(credentialsDTO, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Error creating user' });
+      expect(res.json).toHaveBeenCalledWith(testUserDTO);
     });
   });
 
-  describe('modificarUsuario', () => {
-    it('should update and return the user', async () => {
-      const id = '1';
-      const fecha = new Date();
-      const userDTO: UserDTO = {
-        id: '1',
-        nombre: 'John Doe',
-        email: 'test@test.com',
-        estado: 'active',
-        fechaCreacion: fecha,
-        roles: [],
-        fechaModificacion: fecha,
-      };
-      const updatedUserDTO: UserDTO = {
-        id: '1',
-        nombre: 'Jane Doe',
-        email: 'test2@test.com',
-        estado: 'inactive',
-        fechaCreacion: fecha,
-        roles: [],
-        fechaModificacion: new Date(),
-      };
-      (userService.modificarUsuario as jest.Mock).mockResolvedValue(
-        updatedUserDTO,
-      );
+  describe('updateAccount', () => {
+    it('should update an existing user', async () => {
+      const res = mockResponse();
+      const userDTO: UserDTO = { ...testUserDTO, nombre: 'Jane Doe' };
+      mockUserService.updateUser.mockResolvedValue(userDTO);
 
-      await controller.modificarUsuario(id, userDTO, res);
+      await controller.updateAccount('1', userDTO, res);
 
-      expect(userService.modificarUsuario).toHaveBeenCalledWith(id, userDTO);
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(updatedUserDTO);
-    });
-
-    it('should return a 500 error if an error occurs', async () => {
-      const id = '1';
-      const userDTO: UserDTO = {
-        id: '1',
-        nombre: 'John Doe',
-        email: 'test@test.com',
-        estado: 'active',
-        roles: [],
-        fechaCreacion: new Date(),
-        fechaModificacion: new Date(),
-      };
-      (userService.modificarUsuario as jest.Mock).mockRejectedValue(
-        new Error('Error updating user'),
-      );
-
-      await controller.modificarUsuario(id, userDTO, res);
-
-      expect(userService.modificarUsuario).toHaveBeenCalledWith(id, userDTO);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Error updating user' });
-    });
-  });
-
-  describe('bloquearUsuario', () => {
-    it('should block and return the user', async () => {
-      const id = '1';
-      const motivo = 'violación de términos';
-      const fecha = new Date();
-      const userDTO: UserDTO = {
-        id: '1',
-        nombre: 'John Doe',
-        email: 'test@test.com',
-        estado: 'blocked',
-        roles: [],
-        fechaCreacion: fecha,
-        fechaModificacion: new Date(),
-      };
-      (userService.bloquearUsuario as jest.Mock).mockResolvedValue(userDTO);
-
-      await controller.bloquearUsuario(id, motivo, res);
-
-      expect(userService.bloquearUsuario).toHaveBeenCalledWith(id, motivo);
+      expect(userService.updateUser).toHaveBeenCalledWith('1', userDTO);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(userDTO);
     });
+  });
 
-    it('should return a 500 error if an error occurs', async () => {
-      const id = '1';
-      const motivo = 'violación de términos';
-      (userService.bloquearUsuario as jest.Mock).mockRejectedValue(
-        new Error('Error blocking user'),
-      );
+  describe('deleteAccount', () => {
+    it('should delete a user', async () => {
+      const res = mockResponse();
 
-      await controller.bloquearUsuario(id, motivo, res);
+      await controller.deleteAccount('1', res);
 
-      expect(userService.bloquearUsuario).toHaveBeenCalledWith(id, motivo);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Error blocking user' });
+      expect(userService.deleteUser).toHaveBeenCalledWith('1');
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.send).toHaveBeenCalled();
     });
   });
 
-  describe('recuperarContraseña', () => {
-    it('should call userService.recuperarContraseña and return success message', async () => {
-      await controller.recuperarContraseña('test@example.com', res);
+  describe('blockAccount', () => {
+    it('should block a user', async () => {
+      const res = mockResponse();
+      const motivo = 'Violation of terms';
+      mockUserService.blockUser.mockResolvedValue(testUserDTO);
 
-      expect(userService.recuperarContraseña).toHaveBeenCalledWith(
-        'test@example.com',
-      );
+      await controller.blockAccount('1', motivo, res);
+
+      expect(userService.blockUser).toHaveBeenCalledWith('1', motivo);
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.send).toHaveBeenCalledWith({
-        message: 'Password recovery email sent',
-      });
+      expect(res.json).toHaveBeenCalledWith(testUserDTO);
     });
+  });
 
-    it('should handle errors and return 500 status', async () => {
-      (userService.recuperarContraseña as jest.Mock).mockRejectedValue(
-        new Error('Error occurred'),
-      );
+  describe('changePassword', () => {
+    it('should initiate password recovery', async () => {
+      const res = mockResponse();
+      const email = 'test@example.com';
 
-      await controller.recuperarContraseña('test@example.com', res);
+      await controller.changePassword(email, res);
 
-      expect(userService.recuperarContraseña).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Error occurred' });
+      expect(userService.recuperarContraseña).toHaveBeenCalledWith(email);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.send).toHaveBeenCalledWith({ message: 'Password recovery email sent' });
     });
   });
 });

@@ -124,20 +124,6 @@ export class UserService {
   }
 
   async recuperarContraseña(email: string): Promise<void> {
-    /*
-    const user = await this.userRepository.findOneBy({ email });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const token = this.authService.generateToken(user.id); // Usa el token JWT como token de recuperación
-    const resetPasswordUrl = `${this.configService.get<string>('FRONTEND_URL')}/reset-password?token=${token}`;
-
-    const subject = 'Password Recovery';
-    const text = `To reset your password, please click the following link: ${resetPasswordUrl}`;
-    const html = `<p>To reset your password, please click the following link: <a href="${resetPasswordUrl}">${resetPasswordUrl}</a></p>`;
-
-    await this.mailService.sendMail(email, subject, text, html);
-    */
+    /* Pendiente */
   }
 }
